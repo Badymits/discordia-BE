@@ -1,0 +1,13 @@
+package com.example.discordia;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
+
+@SpringBootTest
+class DiscordiaApplicationTests {
+
+	@Test
+	void contextLoads() {
+	}
+
+}
