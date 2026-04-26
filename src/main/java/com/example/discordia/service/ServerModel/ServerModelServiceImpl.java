@@ -121,7 +121,8 @@ public class ServerModelServiceImpl implements ServerModelService {
 
     @Override
     public ServerModelDto createServer(
-            ServerModelDto dto
+            ServerModelDto dto,
+            MultipartFile image
     ){
 
         ServerModel newServerModel = new ServerModel();
@@ -135,6 +136,8 @@ public class ServerModelServiceImpl implements ServerModelService {
         List<ServerMembers> serverMembersList = new ArrayList<>();
         List<ServerChannel> serverChannelsList = new ArrayList<>();
         List<ServerCategory> serverCategoryList = new ArrayList<>();
+
+        String imgUrl = "";
 
         log.info("Server Owner: {}", serverOwner.toString());
 
@@ -186,6 +189,18 @@ public class ServerModelServiceImpl implements ServerModelService {
                 serverOwner
         );
 
+        // upload server icon image to cloudinary
+        if (!image.isEmpty()){
+            imgUrl = uploadServerImage(
+                    newServerModel.getServerId(),
+                    image
+            );
+
+            newServerModel.setServerIcon(
+                    imgUrl
+            );
+        }
+
         serverModelRepository.save(newServerModel);
         serverChannelRepository.save(generalChannel);
         serverMembersRepository.save(serverMember);
@@ -209,6 +224,37 @@ public class ServerModelServiceImpl implements ServerModelService {
         );
     }
 
+    public String updateServer(
+            UUID serverId,
+            ServerModelDto dto,
+            MultipartFile image
+    ){
+        if (serverId == null){
+            throw new EntityNotFoundException("Server Id is null! Cannot update server");
+        }
+
+        ServerModel server = serverModelRepository.findByServerId(
+                serverId
+        ).orElseThrow(() -> new EntityNotFoundException("Server Not Found!"));
+
+        if (!image.isEmpty()){
+            String serverImgUrl = uploadServerImage(
+                    server.getServerId(),
+                    image
+            );
+
+            server.setServerIcon(serverImgUrl);
+        }
+        if (!dto.getServerName().trim().isEmpty()){
+            server.setServerName(dto.getServerName());
+            server.setServerDescription(dto.getServerDescription());
+        }
+
+        serverModelRepository.save(server);
+
+
+        return "Success";
+    }
 
     // Mapper
     private ServerModelDto toDto(
@@ -230,6 +276,10 @@ public class ServerModelServiceImpl implements ServerModelService {
         );
         dto.setUserId(
             user.getUserId()
+        );
+
+        dto.setServerIcon(
+                entity.getServerIcon()
         );
 
         return dto;
@@ -289,11 +339,6 @@ public class ServerModelServiceImpl implements ServerModelService {
         );
     }
 
-    private void SetCategoryValues(
-
-    ){
-
-    }
 
     private String uploadServerImage(UUID serverId, MultipartFile file){
 
