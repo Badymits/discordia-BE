@@ -31,6 +31,16 @@ public class ServerModel {
     @Column(name = "ServerName")
     private String serverName;
 
+    @Getter
+    @Setter
+    @Column(name = "ServerImgUrl")
+    private String serverIcon;
+
+    @Getter
+    @Setter
+    @Column(name = "ServerDescription")
+    private String serverDescription;
+
     @Setter
     @Getter
     @JoinColumn(name = "UserID")
