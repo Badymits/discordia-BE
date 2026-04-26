@@ -18,6 +18,7 @@ public class ServerModelDto {
     private String serverOwner;
     private String serverName;
     private String serverIcon;
+    private String serverDescription;
 
     private List<ServerMembers> serverMembers;
     private List<ServerCategoryDto> serverCategories;
