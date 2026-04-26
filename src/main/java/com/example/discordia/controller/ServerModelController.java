@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.example.discordia.service.UserService.UserService;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.UUID;
@@ -26,10 +27,11 @@ public class ServerModelController {
 
     @PostMapping("/create-server")
     public ResponseEntity<ServerModelDto> createServer(
-            @RequestBody ServerModelDto createServerRequest
+            @RequestPart("serverData") ServerModelDto createServerRequest,
+            @RequestPart(value="image", required=false) MultipartFile image
     ){
         log.info("Incoming create server request: {}", createServerRequest.toString());
-        ServerModelDto serverDto = serverModelService.createServer(createServerRequest);
+        ServerModelDto serverDto = serverModelService.createServer(createServerRequest, image);
         return ResponseEntity.ok(serverDto);
     }
 
@@ -55,6 +57,17 @@ public class ServerModelController {
                 serverModelService.getServersByUserId(userId, user.getUserName());
 
         return ResponseEntity.ok(list);
+    }
+
+    @PostMapping("/update-server/{serverId}")
+    public ResponseEntity<String> updateServer(
+            @PathVariable("serverId") UUID serverId,
+            @RequestPart("serverData") ServerModelDto serverDto,
+            @RequestPart(value = "image", required = false)MultipartFile image
+            ){
+        log.info("Incoming server data to update: {}", serverDto);
+        String dto = serverModelService.updateServer(serverId, serverDto, image);
+        return ResponseEntity.ok(dto);
     }
 
 
