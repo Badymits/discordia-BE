@@ -190,7 +190,7 @@ public class ServerModelServiceImpl implements ServerModelService {
         );
 
         // upload server icon image to cloudinary
-        if (!image.isEmpty()){
+        if (image != null){
             imgUrl = uploadServerImage(
                     newServerModel.getServerId(),
                     image
@@ -199,6 +199,10 @@ public class ServerModelServiceImpl implements ServerModelService {
             newServerModel.setServerIcon(
                     imgUrl
             );
+        } else {
+            log.info("Do nothing");
+            imgUrl = "";
+            newServerModel.setServerIcon(imgUrl);
         }
 
         serverModelRepository.save(newServerModel);
