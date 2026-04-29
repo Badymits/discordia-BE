@@ -16,7 +16,6 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class ServerCategoryController {
 
-    private final ServerChannelService channelService;
     private final ServerCategoryService categoryService;
 
     @PostMapping("/create-category")
