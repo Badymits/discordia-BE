@@ -2,16 +2,12 @@ package com.example.discordia.controller;
 
 
 import com.example.discordia.dto.ServerChannelDto;
-import com.example.discordia.dto.ServerMessageDto;
-import com.example.discordia.repository.ServerCategoryRepository;
-import com.example.discordia.repository.ServerChannelRepository;
 import com.example.discordia.service.ServerChannel.ServerChannelService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.UUID;
 
 @CrossOrigin(origins = "http://localhost:5173")
@@ -43,4 +39,22 @@ public class ServerChannelController {
         return ResponseEntity.ok(dto);
     }
 
+    @PostMapping("/update/{channelId}")
+    public ResponseEntity<String> updateChannel(
+            @PathVariable UUID channelId,
+            @RequestBody ServerChannelDto channelDto
+    ){
+        log.info("Received data: {}", channelDto);
+        channelService.updateChannel(channelId, channelDto);
+        return ResponseEntity.ok("success");
+    }
+
+    @DeleteMapping("{channelId}")
+    public int deleteChannel(
+            @PathVariable UUID channelId
+    ){
+        log.info("Received confirmation to delete");
+        return channelService.deleteChannel(channelId);
+
+    }
 }
