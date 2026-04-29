@@ -60,6 +60,26 @@ public class ServerChannelServiceImpl implements ServerChannelService{
         return toChannelDto(channel);
     }
 
+    public void updateChannel(
+            UUID channelId,
+            ServerChannelDto channelDto
+    ){
+
+        if (channelDto.getChannelName() != null){
+            channelRepository.updateChannel(
+                    channelId,
+                    channelDto.getChannelName(),
+                    channelDto.getChannelTopic()
+            );
+        } else {
+            throw new RuntimeException("Cannot update fields");
+        }
+    }
+
+    public int deleteChannel(UUID channelId){
+        return channelRepository.deleteChannel(channelId);
+    }
+
     public ServerChannelDto toChannelDto(ServerChannel entity){
 
         ServerChannelDto channelDto = new ServerChannelDto();
@@ -75,6 +95,9 @@ public class ServerChannelServiceImpl implements ServerChannelService{
         // same values
         channelDto.setChannelType(
                 entity.getIcon()
+        );
+        channelDto.setChannelTopic(
+                entity.getChannelTopic()
         );
 
         return channelDto;
