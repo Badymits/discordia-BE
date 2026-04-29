@@ -44,7 +44,8 @@ public class ServerCategory {
     @OneToMany(
             mappedBy = "serverCategory",
             fetch = FetchType.LAZY,
-            cascade = CascadeType.ALL
+            cascade = CascadeType.ALL,
+            orphanRemoval = true // when removing one channel (categoryChannels.remove(channel)) DB will follow
     )
     private List<ServerChannel> categoryChannels = new ArrayList<>();
 }
