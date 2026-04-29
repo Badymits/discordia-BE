@@ -45,7 +45,7 @@ public class ServerModel {
     @Getter
     @JoinColumn(name = "UserID")
     // find a way to transfer ownership when user leaves... or prevent owner to leave from created server
-    @OneToOne(fetch=FetchType.LAZY)
+    @ManyToOne(fetch=FetchType.LAZY)
     // user the FIELD NAME and NOT THE COLUMN NAME reference
     @JsonIgnoreProperties({
             "userPassword",
