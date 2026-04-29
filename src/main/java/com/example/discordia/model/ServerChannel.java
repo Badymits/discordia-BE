@@ -34,6 +34,11 @@ public class ServerChannel {
     @Setter
     private String icon;
 
+    @Getter
+    @Setter
+    @Column(name = "ChannelTopic")
+    private String channelTopic;
+
     @CreatedDate
     @Setter
     @Getter
@@ -50,7 +55,8 @@ public class ServerChannel {
     @OneToMany(
         mappedBy = "serverChannel",
         fetch = FetchType.LAZY,
-        cascade = CascadeType.ALL
+        cascade = CascadeType.ALL,
+        orphanRemoval = true
     )
     private List<ServerMessage> serverMessages = new ArrayList<>();
 

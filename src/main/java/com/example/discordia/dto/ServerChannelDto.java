@@ -13,6 +13,7 @@ public class ServerChannelDto {
 
     private UUID channelId;
     private String channelName;
+    private String channelTopic;
     private UUID categoryId;
     private String icon;
     private String channelType;
