@@ -2,7 +2,6 @@ package com.example.discordia.service.ServerCategory;
 
 
 import com.example.discordia.dto.ServerCategoryDto;
-import com.example.discordia.dto.ServerChannelDto;
 import com.example.discordia.model.ServerCategory;
 import com.example.discordia.model.ServerChannel;
 import com.example.discordia.model.ServerModel;
@@ -12,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -49,6 +49,9 @@ public class ServiceCategoryServiceImpl implements ServerCategoryService{
                 existingModel
         );
         category.setCategoryChannels(channelList);
+        category.setDateCreated(
+                LocalDateTime.now()
+        );
 
         existingCategoryList.add(category);
         categoryRepository.save(category);
@@ -76,6 +79,23 @@ public class ServiceCategoryServiceImpl implements ServerCategoryService{
 
         return dto;
     }
+
+    @Override
+    public String updateCategory(UUID categoryId, String categoryName){
+
+        if (categoryId != null){
+            categoryRepository.updateCategory(
+                    categoryId,
+                    categoryName
+            );
+            return "Success";
+        } else {
+            throw new RuntimeException("Error updating category");
+        }
+    }
+
+    @Override
+    public int deleteCategory(UUID categoryId){ return categoryRepository.deleteCategory(categoryId); }
 
 
 }
