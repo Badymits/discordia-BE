@@ -5,6 +5,7 @@ import com.example.discordia.dto.UserDto;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -15,5 +16,7 @@ public interface UserService {
 
     UserDto saveUser(UserDto userDto);
     UserDto updateUser(UserDto userDto, MultipartFile image);
+
+    List<UserDto> getUsers(String searchTerm, UUID userId);
 
 }
