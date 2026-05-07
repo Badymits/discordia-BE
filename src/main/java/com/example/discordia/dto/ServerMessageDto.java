@@ -16,8 +16,10 @@ public class ServerMessageDto {
     private String messageImgUrl;
 
     private Boolean isContentWithImg;
-    private Boolean isReply;
     private LocalDateTime dateTimestamp;
+
+    private Boolean isReply;
+    private ReplyMessageDto repliedTo;
 
     private UUID channelId;
     private UUID userId;
