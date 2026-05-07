@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.UUID;
 
 @CrossOrigin(origins = "http://localhost:5173")
@@ -49,6 +50,17 @@ public class UserController {
     ){
         UserDto dto = userService.updateUser(userDto, image);
         return ResponseEntity.ok(dto);
+    }
+
+    @GetMapping("/search-users")
+    public ResponseEntity<List<UserDto>> getUsers(
+            @RequestParam String searchTerm,
+            @RequestParam UUID userId
+    ){
+        log.info("Received search term through search: {}", searchTerm);
+        log.info("Received ID through search: {}", userId);
+        List<UserDto> dtoList = userService.getUsers(searchTerm, userId);
+        return ResponseEntity.ok(dtoList);
     }
 
 }
