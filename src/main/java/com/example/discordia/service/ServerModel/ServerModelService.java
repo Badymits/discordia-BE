@@ -20,5 +20,7 @@ public interface ServerModelService {
     String updateServer(UUID serverId, ServerModelDto serverDto, MultipartFile image);
     List<ServerModelDto> getServersByUserId(UUID userId, String username);
 
+    String getServerCode(UUID serverId);
+
 
 }
