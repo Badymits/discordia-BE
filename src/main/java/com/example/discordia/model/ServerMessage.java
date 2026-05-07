@@ -8,7 +8,6 @@ import lombok.ToString;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.springframework.data.annotation.CreatedDate;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -56,6 +55,11 @@ public class ServerMessage {
     @JoinColumn(name = "ChannelId")
     @Setter
     private ServerChannel serverChannel;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @Setter
+    @Getter
+    private ServerMessage repliedTo;
 
 
 }
