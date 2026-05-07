@@ -8,9 +8,6 @@ import lombok.Setter;
 import lombok.ToString;
 import org.hibernate.annotations.JdbcTypeCode;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 
@@ -18,7 +15,18 @@ import java.util.UUID;
 @Setter
 @Entity
 @ToString(exclude = "userPassword")
-@Table(name = "users")
+@Table(name = "users",
+        indexes = {
+            @Index(
+                    name = "idx_username",
+                    columnList = "username"
+            ),
+            @Index(
+                    name = "idx_displayName",
+                    columnList = "displayName"
+            )
+        }
+)
 public class UserModel {
 
     @Id
