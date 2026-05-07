@@ -3,6 +3,7 @@ package com.example.discordia.service.UserService;
 import com.example.discordia.service.Cloudinary.CloudinaryService;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -14,6 +15,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -49,7 +52,7 @@ public class UserServiceImpl implements UserService {
                 userDto.getUserId()
         ).orElseThrow(() -> new EntityNotFoundException("User Not Found"));
 
-        String userImageUrl = "";
+        String userImageUrl;
         String folderName = "User_" + existingUser.getUserId() + "_" + "Avatar_Img_Folder";
 
         if (image != null){
@@ -72,7 +75,7 @@ public class UserServiceImpl implements UserService {
         // update these necessary fields (as of now apr 19 12am 2026lol)
         existingUser.setFirstName(userDto.getFirstname());
         existingUser.setLastName(userDto.getLastname());
-        existingUser.setUsername(userDto.getUserName());
+        existingUser.setUsername(userDto.getUsername());
         existingUser.setDisplayName(userDto.getDisplayName());
 
         return toDto(userRepository.save(existingUser));
@@ -86,7 +89,7 @@ public class UserServiceImpl implements UserService {
         user.setFirstName(userDto.getFirstname());
         user.setLastName(userDto.getLastname());
         user.setEmailAddress(userDto.getEmail());
-        user.setUsername(userDto.getUserName());
+        user.setUsername(userDto.getUsername());
         user.setUserPassword(
                 passwordEncoder.encode(userDto.getPassword())
         );
@@ -99,6 +102,20 @@ public class UserServiceImpl implements UserService {
 
         return toDto(savedUser);
     }
+    @Cacheable
+    @Override
+    public List<UserDto> getUsers(String searchTerm, UUID userId){
+
+        try{
+            List<UserModel> fetchedUsers = userRepository.findUsers(searchTerm, userId);
+
+            return fetchedUsers.stream().map(this::toDto).toList();
+
+        } catch (Exception e) {
+            log.info(String.valueOf(e));
+            return new ArrayList<>();
+        }
+    }
 
     public UserDto toDto (UserModel entity){
         UserDto user = new UserDto();
@@ -107,7 +124,7 @@ public class UserServiceImpl implements UserService {
         user.setFirstname(entity.getFirstName());
         user.setLastname(entity.getLastName());
         user.setEmail(entity.getEmailAddress());
-        user.setUserName(entity.getUsername());
+        user.setUsername(entity.getUsername());
         user.setDisplayName(entity.getDisplayName());
         user.setImgUrl(
                 entity.getImgUrl()
@@ -115,9 +132,6 @@ public class UserServiceImpl implements UserService {
         user.setUserBio(
                 entity.getUserBio()
         );
-//        user.getImage(
-//                entity.getImgUrl()
-//        )
 
         return user;
     }
