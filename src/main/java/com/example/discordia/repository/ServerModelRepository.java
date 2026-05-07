@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -26,4 +27,10 @@ public interface ServerModelRepository extends JpaRepository<ServerModel, UUID> 
             "WHERE sm.user.username = :username") // Gamitin ang username dahil String-based na tayo
     ServerModel findServersByMemberUsername(@Param("username") String username);
 
+    @Query(
+            "SELECT server.serverCode FROM ServerModel server WHERE " +
+            "server.serverCode = :serverCode " +
+            "AND server.codeExpiresAt > :currentTime "
+    )
+    String findServerByServerCode(String serverCode, LocalDateTime currentTime);
 }
