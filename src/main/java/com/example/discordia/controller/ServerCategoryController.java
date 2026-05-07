@@ -3,7 +3,6 @@ package com.example.discordia.controller;
 
 import com.example.discordia.dto.ServerCategoryDto;
 import com.example.discordia.service.ServerCategory.ServerCategoryService;
-import com.example.discordia.service.ServerChannel.ServerChannelService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -35,5 +34,24 @@ public class ServerCategoryController {
 
         return ResponseEntity.ok(dto);
     }
+
+    @PostMapping("/update/{categoryId}")
+    public ResponseEntity<String> updateCategory(
+            @PathVariable UUID categoryId,
+            @RequestBody String categoryName
+    ){
+
+        String result = categoryService.updateCategory(categoryId, categoryName);
+
+        return ResponseEntity.ok(result);
+    }
+
+    @DeleteMapping("{categoryId}")
+    public ResponseEntity<Integer> deleteCategory(
+            @PathVariable UUID categoryId
+    ){
+        return ResponseEntity.ok(categoryService.deleteCategory(categoryId));
+    }
+
 
 }
