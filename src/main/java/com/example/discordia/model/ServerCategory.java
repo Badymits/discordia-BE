@@ -7,8 +7,10 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 import org.hibernate.annotations.JdbcTypeCode;
+import org.springframework.data.annotation.CreatedDate;
 
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -30,6 +32,12 @@ public class ServerCategory {
     @Setter
     @Column(name = "CategoryName")
     private String categoryName;
+
+    @CreatedDate
+    @Getter
+    @Setter
+    @Column(nullable = false, updatable = false, name = "CategoryCreatedDate")
+    private LocalDateTime dateCreated;
 
     @Setter
     @Getter
