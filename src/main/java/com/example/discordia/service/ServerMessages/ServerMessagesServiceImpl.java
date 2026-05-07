@@ -1,7 +1,6 @@
 package com.example.discordia.service.ServerMessages;
 
-import com.cloudinary.Cloudinary;
-import com.cloudinary.utils.ObjectUtils;
+import com.example.discordia.dto.ReplyMessageDto;
 import com.example.discordia.dto.ServerMessageDto;
 import com.example.discordia.dto.UploadImageDto;
 import com.example.discordia.model.ServerChannel;
@@ -16,13 +15,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -35,6 +32,7 @@ public class ServerMessagesServiceImpl implements ServerMessagesService {
     private final UserRepository userRepository;
     private final CloudinaryService cloudinaryService;
 
+    @Transactional
     @Async
     public ServerMessageDto createMessage(ServerMessageDto dto){
 
@@ -93,6 +91,14 @@ public class ServerMessagesServiceImpl implements ServerMessagesService {
 
         log.info("Found channel: ${}", channel.toString());
 
+        if (dto.getIsReply()){
+            ServerMessage existing = messagesRepository.
+                    findByMessageId(dto.getRepliedTo().getMessageId())
+                    .orElseThrow(() -> new EntityNotFoundException("Message Not Found"));
+
+            message.setRepliedTo(existing);
+        }
+
         UserModel user = userRepository
                 .findByUserId(dto.getUserId())
                 .orElseThrow(() -> new EntityNotFoundException("User not found"));
@@ -105,7 +111,7 @@ public class ServerMessagesServiceImpl implements ServerMessagesService {
 
 
         if (url != null && !url.trim().isEmpty()){
-            log.info("there is an img!!! {}", url);
+            log.info("Image detected {}", url);
             message.setMessageImgUrl(url);
         }
 
@@ -115,8 +121,7 @@ public class ServerMessagesServiceImpl implements ServerMessagesService {
         message.setDateTimestamp(
                 LocalDateTime.now()
         );
-
-        message.setIsReply(false);
+        message.setIsReply(dto.getIsReply());
 
 
         return message;
@@ -149,9 +154,30 @@ public class ServerMessagesServiceImpl implements ServerMessagesService {
             dto.setIsContentWithImg(false);
         }
 
+        // Its recursive pero hopefully....idk
+        if (message.getIsReply()){
+            dto.setRepliedTo(toReplyMessageDto(message));
+        }
+
+        dto.setIsReply(message.getIsReply());
+
         dto.setDateTimestamp(message.getDateTimestamp());
 
         log.info("testing if image has URL: {}", dto.getMessageImgUrl());
+
+        return dto;
+    }
+
+    public ReplyMessageDto toReplyMessageDto(ServerMessage message){
+        ReplyMessageDto dto = new ReplyMessageDto();
+
+
+        dto.setMessageId(message.getRepliedTo().getMessageId());
+        dto.setMessage(message.getRepliedTo().getMessage());
+
+        dto.setUserId(message.getRepliedTo().getUser().getUserId());
+        dto.setDisplayName(message.getRepliedTo().getUser().getDisplayName());
+        dto.setImgUrl(message.getRepliedTo().getUser().getImgUrl());
 
         return dto;
     }
