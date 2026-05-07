@@ -10,6 +10,7 @@ import org.hibernate.annotations.Fetch;
 import org.hibernate.annotations.FetchMode;
 import org.hibernate.annotations.JdbcTypeCode;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -71,7 +72,17 @@ public class ServerModel {
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "serverModel")
     @JsonManagedReference
     @Fetch(FetchMode.SUBSELECT)
+    @OrderBy("dateCreated ASC")
     private List<ServerCategory> serverCategories = new ArrayList<>();
 
+    @Getter
+    @Setter
+    @Column(name = "ServerCode")
 
+    private String serverCode;
+
+    @Setter
+    @Getter
+    @Column(name = "CodeExpireDate")
+    private LocalDateTime codeExpiresAt;
 }
