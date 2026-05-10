@@ -62,7 +62,8 @@ public class SecurityConfig {
                             "/api/channels/**",
                             "/api/category/**",
                             "/api/members/**",
-                            "/api/messages/**",
+                            "/api/server-messages/**",
+                            "/api/direct-channel/**",
                             "/ws/**"// temporary fix since we're not using any cookies atm (mar 21 1:08am)
                     ).permitAll()
                     // All other requests require authentication
