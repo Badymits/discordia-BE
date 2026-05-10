@@ -1,23 +1,25 @@
 package com.example.discordia.service.ServerModel;
 
-
+import com.example.discordia.service.Cloudinary.CloudinaryService;
 import com.example.discordia.dto.ServerCategoryDto;
 import com.example.discordia.dto.ServerChannelDto;
 import com.example.discordia.dto.ServerModelDto;
 import com.example.discordia.model.*;
-
 import com.example.discordia.repository.*;
 
-import com.example.discordia.service.Cloudinary.CloudinaryService;
-import com.example.discordia.service.UserService.UserService;
+
+import com.example.discordia.service.ServerCategory.ServerCategoryService;
+import com.example.discordia.service.ServerChannel.ServerChannelService;
 import jakarta.persistence.EntityNotFoundException;
-import lombok.RequiredArgsConstructor;
-import org.springframework.boot.context.config.ConfigDataResourceNotFoundException;
-import org.springframework.data.crossstore.ChangeSetPersister;
+
 import org.springframework.stereotype.Service;
-import lombok.extern.slf4j.Slf4j;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+import java.util.concurrent.ThreadLocalRandom;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -30,8 +32,13 @@ public class ServerModelServiceImpl implements ServerModelService {
     private final ServerChannelRepository serverChannelRepository;
     private final ServerMembersRepository serverMembersRepository;
     private final ServerCategoryRepository serverCategoryRepository;
+
     private final UserRepository userRepository;
     private final CloudinaryService cloudinaryService;
+
+    final String lowerCase = "abcdefghijklmnopqrstuvwxyz";
+    final String upperCase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    final String numeric = "0123456789";
 
 
     public ServerModelDto findByServerID(UUID serverId){
@@ -120,6 +127,7 @@ public class ServerModelServiceImpl implements ServerModelService {
     }
 
     @Override
+    @Transactional // since we're calling save() method of repository
     public ServerModelDto createServer(
             ServerModelDto dto,
             MultipartFile image
@@ -129,6 +137,7 @@ public class ServerModelServiceImpl implements ServerModelService {
         ServerMembers serverMember = new ServerMembers();
         ServerChannel generalChannel = new ServerChannel();
         ServerCategory serverCategory = new ServerCategory();
+
         UserModel serverOwner =
                 userRepository.findByUserId(dto.getUserId())
                         .orElseThrow(() -> new EntityNotFoundException("User Not Found"));
@@ -137,75 +146,29 @@ public class ServerModelServiceImpl implements ServerModelService {
         List<ServerChannel> serverChannelsList = new ArrayList<>();
         List<ServerCategory> serverCategoryList = new ArrayList<>();
 
-        String imgUrl = "";
 
         log.info("Server Owner: {}", serverOwner.toString());
-
-        // setting isAdmin to true only happens in create Server endpoint
-        serverMember.setUser(serverOwner);
-        serverMember.setServerNickname(serverOwner.getUsername());
-        serverMember.setAdmin(true);
-        serverMember.setServerModel(newServerModel);
-
-
-        // setting values for CHANNEL model
-        serverCategory.setCategoryName("Text Channels");
-
-        SetChannelValues(
-                generalChannel,
-                newServerModel,
-                serverCategory
-        );
-
 
         serverMembersList.add(serverMember);
         serverChannelsList.add(generalChannel);
         serverCategoryList.add(serverCategory);
 
-        // can add serverChannelsList as is since it only contains "general"
-        serverCategory.setCategoryChannels(
-                serverChannelsList
+        ServerModel serverModel = toEntity(
+                dto,
+                serverMembersList,
+                serverChannelsList,
+                serverCategoryList,
+                serverOwner,
+                image
         );
 
-        serverCategory.setServerModel(
-                newServerModel
-        );
+
+        setServerMemberValues(serverMember, serverOwner, serverModel);
+        setChannelValues(generalChannel, serverModel, serverCategory);
+        setCategoryValues(serverCategory, serverModel, serverChannelsList);
 
 
-        // Add values to new Server object
-        newServerModel.setServerMembers(
-                serverMembersList
-        );
-        newServerModel.setServerChannels(
-                serverChannelsList
-        );
-
-        newServerModel.setServerCategories(
-                serverCategoryList
-        );
-
-        newServerModel.setServerName(dto.getServerName());
-        newServerModel.setServerOwner(
-                serverOwner
-        );
-
-        // upload server icon image to cloudinary
-        if (image != null){
-            imgUrl = uploadServerImage(
-                    newServerModel.getServerId(),
-                    image
-            );
-
-            newServerModel.setServerIcon(
-                    imgUrl
-            );
-        } else {
-            log.info("Do nothing");
-            imgUrl = "";
-            newServerModel.setServerIcon(imgUrl);
-        }
-
-        serverModelRepository.save(newServerModel);
+        serverModelRepository.save(serverModel);
         serverChannelRepository.save(generalChannel);
         serverMembersRepository.save(serverMember);
         serverCategoryRepository.save(serverCategory);
@@ -214,18 +177,10 @@ public class ServerModelServiceImpl implements ServerModelService {
         List<ServerChannelDto> channelDtoList = new ArrayList<>();
         List<ServerCategoryDto> categoryDtoList = new ArrayList<>();
 
-        channelDtoList.add(
-                toChannelDto(generalChannel, serverCategory)
-        );
-        categoryDtoList.add(
-                toCategoryDto(serverCategory, channelDtoList)
-        );
+        channelDtoList.add(toChannelDto(generalChannel, serverCategory));
+        categoryDtoList.add(toCategoryDto(serverCategory, channelDtoList));
 
-        return toDto(
-                newServerModel,
-                categoryDtoList,
-                serverOwner
-        );
+        return toDto(serverModel, categoryDtoList, serverOwner);
     }
 
     public String updateServer(
@@ -260,6 +215,79 @@ public class ServerModelServiceImpl implements ServerModelService {
         return "Success";
     }
 
+    @Override
+    public String getServerCode (UUID serverId){
+
+        ServerModel existingServer = serverModelRepository.findByServerId(serverId)
+                .orElseThrow(() -> new EntityNotFoundException("Server Not Found"));
+
+        if (existingServer.getServerCode() != null &&
+                existingServer.getCodeExpiresAt().isAfter(LocalDateTime.now())){
+
+            return serverModelRepository
+                    .findServerByServerCode(serverId, LocalDateTime.now());
+        }
+
+        String serverCode = createServerCode();
+
+        existingServer.setServerCode(serverCode);
+        existingServer.setCodeExpiresAt(
+                LocalDateTime.now().plusHours(24)
+        );
+
+        serverModelRepository.save(existingServer);
+
+        return serverCode;
+    }
+
+
+
+    private ServerModel toEntity(
+            ServerModelDto dto,
+            List<ServerMembers> membersList,
+            List<ServerChannel> channelList,
+            List<ServerCategory> categoryList,
+            UserModel user,
+            MultipartFile image
+        ){
+
+        ServerModel newServerModel = new ServerModel();
+        String serverImgUrl;
+
+        newServerModel.setServerChannels(channelList);
+        newServerModel.setServerCategories(categoryList);
+        newServerModel.setServerMembers(membersList);
+
+        newServerModel.setServerOwner(user);
+        newServerModel.setServerName(
+                dto.getServerName()
+        );
+        newServerModel.setServerCode(
+                createServerCode()
+        );
+        newServerModel.setCodeExpiresAt(
+                LocalDateTime.now().plusHours(24)
+        );
+
+        if (image != null){
+            serverImgUrl = uploadServerImage(
+                    newServerModel.getServerId(),
+                    image
+            );
+
+            newServerModel.setServerIcon(
+                    serverImgUrl
+            );
+        } else {
+            serverImgUrl = "";
+            newServerModel.setServerIcon(serverImgUrl);
+        }
+
+        log.info("Entity details: {}", newServerModel);
+
+        return newServerModel;
+    }
+
     // Mapper
     private ServerModelDto toDto(
             ServerModel entity,
@@ -268,23 +296,20 @@ public class ServerModelServiceImpl implements ServerModelService {
     ){
         ServerModelDto dto = new ServerModelDto();
 
+        log.info("dto entity: {}", entity);
+        log.info("Username: {}", entity.getServerOwner());
+
         dto.setServerId(entity.getServerId());
         dto.setServerName(entity.getServerName());
         dto.setServerOwner(entity.getServerOwner().getUsername());
 
-        dto.setServerMembers(
-                entity.getServerMembers()
-        );
-        dto.setServerCategories(
-                categoryDto
-        );
-        dto.setUserId(
-            user.getUserId()
-        );
+        dto.setServerMembers(entity.getServerMembers());
+        dto.setServerCategories(categoryDto);
 
-        dto.setServerIcon(
-                entity.getServerIcon()
-        );
+        dto.setUserId(user.getUserId());
+
+        dto.setServerIcon(entity.getServerIcon());
+        dto.setServerInviteCode(entity.getServerCode());
 
         return dto;
     }
@@ -327,7 +352,7 @@ public class ServerModelServiceImpl implements ServerModelService {
         return categoryDto;
     }
 
-    private void SetChannelValues(
+    private void setChannelValues(
             ServerChannel channel,
             ServerModel server,
             ServerCategory category
@@ -341,6 +366,31 @@ public class ServerModelServiceImpl implements ServerModelService {
         channel.setDateCreated(
                 LocalDateTime.now()
         );
+    }
+
+    private void setCategoryValues(
+            ServerCategory category,
+            ServerModel server,
+            List<ServerChannel> serverChannels
+    ){
+        category.setCategoryName("Text Channels");
+        category.setCategoryChannels(serverChannels);
+        category.setServerModel(server);
+
+        category.setDateCreated(
+                LocalDateTime.now()
+        );
+    }
+
+    private void setServerMemberValues(
+            ServerMembers member,
+            UserModel user,
+            ServerModel server
+    ){
+        member.setAdmin(true);
+        member.setServerNickname(user.getDisplayName());
+        member.setUser(user);
+        member.setServerModel(server);
     }
 
 
@@ -361,9 +411,46 @@ public class ServerModelServiceImpl implements ServerModelService {
 
             return imgUrl;
         } catch (Exception e){
-            //log.info(String.valueOf(e));
             log.error("e: ", e);
             return "";
         }
+    }
+
+    private String createServerCode(){
+
+        int i = 0;
+        Random rand = new Random();
+        StringBuilder code = new StringBuilder();
+
+        while (i < 8){
+            int choice = rand.nextInt(1, 4);
+
+            if (choice == 1){
+
+                char character = lowerCase.charAt(
+                        ThreadLocalRandom.current().nextInt(lowerCase.length()
+                        )
+                );
+                code.append(character);
+
+            } else if (choice == 2) {
+
+                char character = upperCase.charAt(
+                        ThreadLocalRandom.current().nextInt(upperCase.length())
+                );
+                code.append(character);
+
+            } else if (choice == 3) {
+
+                char character = numeric.charAt(
+                        ThreadLocalRandom.current().nextInt(numeric.length())
+                );
+                code.append(character);
+            }
+
+            i++;
+        }
+
+        return code.toString();
     }
 }
