@@ -14,4 +14,5 @@ public class ReplyMessageDto {
     private UUID userId;
     private String displayName;
     private String imgUrl;
+    private Boolean isContentWithImg;
 }
