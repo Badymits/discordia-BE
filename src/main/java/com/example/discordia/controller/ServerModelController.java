@@ -54,7 +54,7 @@ public class ServerModelController {
         log.info("found user: {}", user);
 
         List<ServerModelDto> list =
-                serverModelService.getServersByUserId(userId, user.getUserName());
+                serverModelService.getServersByUserId(userId, user.getUsername());
 
         return ResponseEntity.ok(list);
     }
@@ -68,6 +68,15 @@ public class ServerModelController {
         log.info("Incoming server data to update: {}", serverDto);
         String dto = serverModelService.updateServer(serverId, serverDto, image);
         return ResponseEntity.ok(dto);
+    }
+
+    @GetMapping("/get-server-code/{serverId}")
+    public ResponseEntity<String> getServerCode(
+            @PathVariable("serverId") UUID serverId
+    ){
+        String serverCode = serverModelService.getServerCode(serverId);
+
+        return ResponseEntity.ok(serverCode);
     }
 
 
