@@ -133,7 +133,7 @@ public class ServerMessagesServiceImpl implements ServerMessagesService {
 
         dto.setMessageId(message.getMessageId());
         dto.setMessage(message.getMessage());
-
+        dto.setMessageId(message.getMessageId());
 
         if (message.getUser() != null){
             dto.setDisplayName(message.getUser().getDisplayName());
@@ -178,6 +178,13 @@ public class ServerMessagesServiceImpl implements ServerMessagesService {
         dto.setUserId(message.getRepliedTo().getUser().getUserId());
         dto.setDisplayName(message.getRepliedTo().getUser().getDisplayName());
         dto.setImgUrl(message.getRepliedTo().getUser().getImgUrl());
+
+        if (message.getRepliedTo().getMessageImgUrl() != null){
+            dto.setIsContentWithImg(
+                    message.getRepliedTo().getIsContentWithImg()
+            );
+        }
+
 
         return dto;
     }
