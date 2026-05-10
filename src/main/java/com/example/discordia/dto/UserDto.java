@@ -11,7 +11,7 @@ import java.util.UUID;
 @Data
 public class UserDto {
 
-    private UUID UserId;
+    private UUID userId;
     private String firstname;
     private String lastname;
 
@@ -20,7 +20,5 @@ public class UserDto {
     private String userBio;
 
     private String imgUrl;
-
-    private String password;
     private String email;
 }
