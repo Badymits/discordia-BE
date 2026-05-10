@@ -27,10 +27,11 @@ public interface ServerModelRepository extends JpaRepository<ServerModel, UUID> 
             "WHERE sm.user.username = :username") // Gamitin ang username dahil String-based na tayo
     ServerModel findServersByMemberUsername(@Param("username") String username);
 
+
     @Query(
             "SELECT server.serverCode FROM ServerModel server WHERE " +
-            "server.serverCode = :serverCode " +
-            "AND server.codeExpiresAt > :currentTime "
+            "server.serverId = :serverId " +
+            "AND server.codeExpiresAt > :currentTime"
     )
-    String findServerByServerCode(String serverCode, LocalDateTime currentTime);
+    String findServerByServerCode(UUID serverId, LocalDateTime currentTime);
 }
