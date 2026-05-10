@@ -4,11 +4,13 @@ import java.util.Collection;
 import java.util.List;
 
 import com.example.discordia.model.UserModel;
+import lombok.Getter;
 import org.jspecify.annotations.Nullable;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 
+@Getter
 public class CustomUserDetails implements UserDetails {
 
     private final UserModel userModel;
@@ -16,10 +18,6 @@ public class CustomUserDetails implements UserDetails {
 
     public CustomUserDetails(UserModel userModel){
         this.userModel = userModel;
-    }
-
-    public UserModel getUserModel() {
-        return userModel;
     }
 
     @Override
