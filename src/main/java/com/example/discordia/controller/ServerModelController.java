@@ -1,9 +1,9 @@
 package com.example.discordia.controller;
 
 
+import com.example.discordia.dto.ServerMetaDataDto;
 import com.example.discordia.dto.ServerModelDto;
 import com.example.discordia.dto.UserDto;
-import com.example.discordia.model.UserModel;
 import lombok.extern.slf4j.Slf4j;
 import com.example.discordia.service.ServerModel.ServerModelService;
 import lombok.RequiredArgsConstructor;
@@ -77,6 +77,16 @@ public class ServerModelController {
         String serverCode = serverModelService.getServerCode(serverId);
 
         return ResponseEntity.ok(serverCode);
+    }
+
+    @GetMapping("/get-metadata/{serverId}")
+    public ResponseEntity<ServerMetaDataDto> getServerMetaData(
+            @PathVariable("serverId") UUID serverId
+    ){
+        log.info("Server ID: {}", serverId);
+        ServerMetaDataDto metaDataDto = serverModelService.getServerMetaData(serverId);
+
+        return ResponseEntity.ok(metaDataDto);
     }
 
 
