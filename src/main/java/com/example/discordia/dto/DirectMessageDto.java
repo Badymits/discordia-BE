@@ -12,7 +12,7 @@ import java.util.UUID;
 public class DirectMessageDto extends MessageDto {
 
     private UUID directMessageId;
-    private UserDto recipient;
-
+    private UUID directChannelId;
+    private UUID userId;
 
 }
