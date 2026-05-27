@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Getter
+@Setter
 @ToString
 @MappedSuperclass
 public class Message {
@@ -20,6 +21,10 @@ public class Message {
     @JdbcTypeCode(java.sql.Types.VARCHAR)
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID messageId;
+
+    @JdbcTypeCode(java.sql.Types.VARCHAR)
+    @Column(name = "ServerIdReference")
+    private UUID serverId;
 
     @Setter
     @Getter
@@ -50,11 +55,13 @@ public class Message {
     @Column(name = "isEdited")
     private Boolean isEdited;
 
+    @Setter
+    @Column(name = "isServerInvite")
+    private Boolean isServerInvite;
+
     @CreatedDate
     @Setter
     @Column(nullable = false, updatable = false, name = "MessageCreated")
     private LocalDateTime dateTimestamp;
-
-
 
 }
