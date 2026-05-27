@@ -18,6 +18,7 @@ public interface ServerMessagesService {
     ServerMessageDto createMessage(ServerMessageDto messageDto);
     ServerMessageDto toDto (ServerMessage message);
     List<ServerMessageDto> getMessagesByChannelId(UUID channelId);
+    ServerMessageDto updateServerMessage(UUID messageId, String message);
     UploadImageDto uploadMessageImage(
             UUID messageId,
             UUID serverId,
