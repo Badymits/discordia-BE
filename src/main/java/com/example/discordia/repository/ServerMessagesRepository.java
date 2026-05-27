@@ -18,6 +18,12 @@ public interface ServerMessagesRepository extends JpaRepository<ServerMessage, L
             "sm.serverChannel sc WHERE sc.channelId = :channelId ORDER BY sm.dateTimestamp ASC")
     List<ServerMessage> findMessagesByChannelId(@Param("channelId") UUID channelId);
 
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Transactional
+    @Query(" UPDATE ServerMessage sm SET sm.message = :message, sm.isEdited = true" +
+            "WHERE sm.messageId = :messageId")
+    int updateServerMessage(UUID messageId, String message);
+
     @Modifying
     @Transactional
     @Query("UPDATE ServerMessage m SET m.messageImgUrl = :url WHERE m.messageId = :messageId")
