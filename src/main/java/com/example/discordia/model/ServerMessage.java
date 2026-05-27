@@ -2,20 +2,26 @@ package com.example.discordia.model;
 
 
 import jakarta.persistence.*;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Setter
 @Getter
 @ToString
 @Entity
-@Table(name = "server_message")
+@Table(
+        name = "server_message",
+        indexes = @Index(
+                name = "idx_messageCreated",
+                columnList = "MessageCreated"
+        )
+)
+@EntityListeners(AuditingEntityListener.class)
+@EqualsAndHashCode(callSuper = true)
 public class ServerMessage extends Message {
 
     @ManyToOne
