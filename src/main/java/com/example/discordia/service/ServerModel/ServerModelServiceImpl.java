@@ -1,5 +1,6 @@
 package com.example.discordia.service.ServerModel;
 
+import com.example.discordia.dto.ServerMetaDataDto;
 import com.example.discordia.service.Cloudinary.CloudinaryService;
 import com.example.discordia.dto.ServerCategoryDto;
 import com.example.discordia.dto.ServerChannelDto;
@@ -8,10 +9,7 @@ import com.example.discordia.model.*;
 import com.example.discordia.repository.*;
 
 
-import com.example.discordia.service.ServerCategory.ServerCategoryService;
-import com.example.discordia.service.ServerChannel.ServerChannelService;
 import jakarta.persistence.EntityNotFoundException;
-
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -133,7 +131,6 @@ public class ServerModelServiceImpl implements ServerModelService {
             MultipartFile image
     ){
 
-        ServerModel newServerModel = new ServerModel();
         ServerMembers serverMember = new ServerMembers();
         ServerChannel generalChannel = new ServerChannel();
         ServerCategory serverCategory = new ServerCategory();
@@ -225,7 +222,7 @@ public class ServerModelServiceImpl implements ServerModelService {
                 existingServer.getCodeExpiresAt().isAfter(LocalDateTime.now())){
 
             return serverModelRepository
-                    .findServerByServerCode(serverId, LocalDateTime.now());
+                    .findServerCodeByServerId(serverId, LocalDateTime.now());
         }
 
         String serverCode = createServerCode();
@@ -238,6 +235,21 @@ public class ServerModelServiceImpl implements ServerModelService {
         serverModelRepository.save(existingServer);
 
         return serverCode;
+    }
+
+    public ServerMetaDataDto getServerMetaData(UUID serverId){
+
+        ServerModel existingServer =
+                serverModelRepository.findByServerId(serverId)
+                        .orElseThrow(() -> new EntityNotFoundException("Server Not Found"));
+
+        return ServerMetaDataDto.builder()
+                .serverId(existingServer.getServerId())
+                .serverName(existingServer.getServerName())
+                .serverIcon(existingServer.getServerIcon())
+                .createdDate(existingServer.getDateCreated())
+                .serverMemberCount(existingServer.getServerMembers().size())
+                .build();
     }
 
 
@@ -303,7 +315,7 @@ public class ServerModelServiceImpl implements ServerModelService {
         dto.setServerName(entity.getServerName());
         dto.setServerOwner(entity.getServerOwner().getUsername());
 
-        dto.setServerMembers(entity.getServerMembers());
+        //dto.setServerMembers(entity.getServerMembers());
         dto.setServerCategories(categoryDto);
 
         dto.setUserId(user.getUserId());
@@ -367,6 +379,8 @@ public class ServerModelServiceImpl implements ServerModelService {
                 LocalDateTime.now()
         );
     }
+
+
 
     private void setCategoryValues(
             ServerCategory category,
