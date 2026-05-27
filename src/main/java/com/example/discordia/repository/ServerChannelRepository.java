@@ -26,9 +26,6 @@ public interface ServerChannelRepository extends JpaRepository<ServerChannel, UU
             "WHERE sc.channelId = :channelId")
     void updateChannel(UUID channelId, String channelName, String channelTopic);
 
-    @Modifying // Required for Delete/Update operations
-    @Transactional
-    @Query("DELETE FROM ServerChannel sc WHERE sc.channelId = :channelId")
-    int deleteChannel(UUID channelId);
+
     Optional<ServerChannel> findByChannelId (UUID channelId);
 }
