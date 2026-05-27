@@ -33,5 +33,10 @@ public interface ServerModelRepository extends JpaRepository<ServerModel, UUID> 
             "server.serverId = :serverId " +
             "AND server.codeExpiresAt > :currentTime"
     )
-    String findServerByServerCode(UUID serverId, LocalDateTime currentTime);
+    String findServerCodeByServerId(UUID serverId, LocalDateTime currentTime);
+
+    @Query("SELECT s.serverId FROM ServerModel s " +
+            "WHERE s.serverCode = :serverCode " +
+            "AND s.codeExpiresAt > :currentTime")
+    Optional<UUID> findServerByServerCode(String serverCode, LocalDateTime currentTime);
 }
