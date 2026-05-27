@@ -2,24 +2,18 @@ package com.example.discordia.service.ServerChannel;
 
 
 import com.example.discordia.dto.ServerChannelDto;
-import com.example.discordia.dto.ServerMessageDto;
 import com.example.discordia.model.ServerCategory;
 import com.example.discordia.model.ServerChannel;
-import com.example.discordia.model.ServerMessage;
 import com.example.discordia.repository.ServerCategoryRepository;
 import com.example.discordia.repository.ServerChannelRepository;
-import com.example.discordia.repository.ServerMessagesRepository;
-import com.example.discordia.service.ServerMessages.ServerMessagesService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.UUID;
-
-import static java.util.stream.Collectors.toList;
 
 @Service
 @RequiredArgsConstructor
@@ -75,9 +69,17 @@ public class ServerChannelServiceImpl implements ServerChannelService{
             throw new RuntimeException("Cannot update fields");
         }
     }
+    // @Transactional annotation. The transaction ensures that when .clear() accesses the lazy list,
+    // Hibernate can successfully run the SQL SELECT to load the messages into memory before clearing them
+    @Transactional
+    public void deleteChannel(UUID channelId){
 
-    public int deleteChannel(UUID channelId){
-        return channelRepository.deleteChannel(channelId);
+        ServerChannel channel = channelRepository
+                .findByChannelId(channelId).orElseThrow(() -> new EntityNotFoundException("Channel Not Found"));
+
+        channel.getServerMessages().clear();
+
+        channelRepository.delete(channel);
     }
 
     public ServerChannelDto toChannelDto(ServerChannel entity){
