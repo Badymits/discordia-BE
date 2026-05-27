@@ -19,6 +19,7 @@ import java.util.UUID;
 @Data
 public class MessageDto {
 
+    private UUID serverId;
     private UUID messageId;
 
     private String displayName;
@@ -29,6 +30,7 @@ public class MessageDto {
     private Boolean isContentWithImg;
     private Boolean isReply;
     private Boolean isEdited;
+    private Boolean isServerInvite;
 
     private LocalDateTime dateTimestamp;
     private ReplyMessageDto repliedTo;
