@@ -1,6 +1,7 @@
 package com.example.discordia.service.ServerModel;
 
 
+import com.example.discordia.dto.ServerMetaDataDto;
 import com.example.discordia.dto.ServerModelDto;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -21,6 +22,7 @@ public interface ServerModelService {
     List<ServerModelDto> getServersByUserId(UUID userId, String username);
 
     String getServerCode(UUID serverId);
+    ServerMetaDataDto getServerMetaData(UUID serverId);
 
 
 }
