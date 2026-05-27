@@ -3,7 +3,13 @@ package com.example.discordia.service.DirectMessages;
 
 import com.example.discordia.dto.DirectMessageDto;
 
+import java.util.List;
+import java.util.UUID;
+
 public interface DirectMessagesService {
 
-    void createMessage(DirectMessageDto message);
+    DirectMessageDto createMessage(DirectMessageDto message);
+    List<DirectMessageDto> getDirectChannelMessages(UUID directChannelId);
+    DirectMessageDto updateDirectMessage(UUID messageId, String message);
+    UUID deleteDirectMessage(UUID messageId);
 }
