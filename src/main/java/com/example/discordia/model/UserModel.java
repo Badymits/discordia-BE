@@ -7,14 +7,17 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+import org.springframework.data.annotation.CreatedDate;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 
 @Getter
 @Setter
 @Entity
-@ToString(exclude = "userPassword")
+@ToString(exclude = {"userPassword", "directChannel"})
 @Table(name = "users",
         indexes = {
             @Index(
@@ -30,8 +33,8 @@ import java.util.UUID;
 public class UserModel {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @JdbcTypeCode(java.sql.Types.VARCHAR)
+    @GeneratedValue
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     @Column(name = "UserID")
     private UUID userId;
 
@@ -71,10 +74,15 @@ public class UserModel {
     @JsonIgnore
     private String userPassword;
 
-//    // list to keep track of all servers that the user is the owner of
-//    // ...IDK why pero sige lagay natin toh pota
-//    @OneToMany(fetch = FetchType.LAZY)
-//    @JoinColumn(name = "ServerOwner")
-//    private List<ServerModel> serverModelOwnerList = new ArrayList<>();
+    @Getter
+    @Setter
+    @CreatedDate
+    @Column(name = "AccountCreatedAt")
+    private LocalDateTime accountCreatedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "DirectChannelId")
+    private DirectChannel directChannel; // convert to list
+
 
 }
