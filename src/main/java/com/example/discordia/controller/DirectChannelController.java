@@ -39,4 +39,14 @@ public class DirectChannelController {
         log.info("All direct channels: {}", channelDtoList);
         return ResponseEntity.ok(channelDtoList);
     }
+
+    @GetMapping("/get-direct-channel/{directChannelId}")
+    public ResponseEntity<DirectChannelDto> getDirectChannelRoom(
+            @PathVariable UUID directChannelId
+    ){
+        DirectChannelDto channelDto = directChannelService.getDirectChannel(directChannelId);
+
+        log.info("Channel Found! {}", channelDto);
+        return ResponseEntity.ok(channelDto);
+    }
 }

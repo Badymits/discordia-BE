@@ -1,6 +1,7 @@
 package com.example.discordia.model;
 
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -14,7 +15,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Getter
-@ToString
+@ToString(exclude = "directChannelParticipants")
 @Entity
 @Table(name = "direct_channel")
 @EntityListeners(AuditingEntityListener.class)
@@ -46,12 +47,14 @@ public class DirectChannel {
     @Column(name = "isGroupConvo")
     private Boolean isGroupConvo;
 
+    // mapped by reference must be present in the Model of the List (in this case)
     @OneToMany(
-            mappedBy = "directMessageModel",
+            mappedBy = "directChannelModel",
             fetch = FetchType.LAZY,
             cascade = CascadeType.ALL,
             orphanRemoval = true
     )
+    @JsonManagedReference
     private List<DirectMessage> chatMessages;
 
 }
