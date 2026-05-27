@@ -9,6 +9,8 @@ import lombok.ToString;
 import org.hibernate.annotations.Fetch;
 import org.hibernate.annotations.FetchMode;
 import org.hibernate.annotations.JdbcTypeCode;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -19,7 +21,14 @@ import java.util.UUID;
 @Getter
 @Setter
 @ToString(exclude = "serverCategories")
-@Table(name = "server")
+@EntityListeners(AuditingEntityListener.class)
+@Table(
+        name = "server",
+        indexes = @Index(
+                name = "idx_serverCode",
+                columnList = "ServerCode"
+        )
+)
 public class ServerModel {
 
     @Id
@@ -41,6 +50,10 @@ public class ServerModel {
     @Setter
     @Column(name = "ServerDescription")
     private String serverDescription;
+
+    @CreatedDate
+    @Column(name = "ServerDateCreated")
+    private LocalDateTime dateCreated;
 
     @Setter
     @Getter
