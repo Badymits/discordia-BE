@@ -4,6 +4,7 @@ import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.List;
 import java.util.UUID;
 
 @Getter
@@ -21,4 +22,6 @@ public class UserDto {
 
     private String imgUrl;
     private String email;
+
+    private List<ServerModelDto> joinedServersList;
 }
