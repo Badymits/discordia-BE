@@ -50,11 +50,10 @@ public class ServerChannelController {
     }
 
     @DeleteMapping("{channelId}")
-    public int deleteChannel(
+    public void deleteChannel(
             @PathVariable UUID channelId
     ){
         log.info("Received confirmation to delete");
-        return channelService.deleteChannel(channelId);
-
+        channelService.deleteChannel(channelId);
     }
 }
