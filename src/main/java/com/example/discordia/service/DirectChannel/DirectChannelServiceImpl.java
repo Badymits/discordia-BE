@@ -4,15 +4,11 @@ package com.example.discordia.service.DirectChannel;
 import com.example.discordia.dto.DirectChannelDto;
 import com.example.discordia.mappers.DirectChannelMapper;
 import com.example.discordia.model.DirectChannel;
-import com.example.discordia.model.DirectMessage;
 import com.example.discordia.model.UserModel;
 import com.example.discordia.repository.DirectChannelRepository;
 import com.example.discordia.repository.UserRepository;
-import com.example.discordia.mappers.UserMapper;
 
-import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -28,6 +24,7 @@ import java.util.UUID;
 public class DirectChannelServiceImpl implements DirectChannelService {
 
     private final DirectChannelRepository directChannelRepository;
+    private final DirectChannelMapper directChannelMapper;
     private final UserRepository userRepository;
 
 
@@ -56,7 +53,7 @@ public class DirectChannelServiceImpl implements DirectChannelService {
         DirectChannel directChannel = directChannelRepository
                 .findByDirectChannelParticipants(user1, user2)
                 .orElse(
-                        DirectChannelMapper.directChannelMapper.dtoToDirectChannelModel(dto)
+                        directChannelMapper.dtoToDirectChannelModel(dto)
                 );
 
         if (directChannel.getDirectChannelId() == null){
@@ -68,7 +65,7 @@ public class DirectChannelServiceImpl implements DirectChannelService {
 
         }
 
-        return DirectChannelMapper.directChannelMapper.directChannelModelToDto(directChannel);
+        return directChannelMapper.directChannelModelToDto(directChannel);
 
     }
 
@@ -83,8 +80,23 @@ public class DirectChannelServiceImpl implements DirectChannelService {
                 .findDirectChannelsByUserId(existingUser)
                 .stream()
                 .sorted(Comparator.comparing(DirectChannel::getChannelCreated))
-                .map(DirectChannelMapper.directChannelMapper::directChannelModelToDto)
+                .map(directChannelMapper::directChannelModelToDto)
                 .toList();
+    }
+
+    // Since the channel participants are marked as Lazy Loading
+    // this ensures that the mapper won't throw a LazyInitializationException
+    // if it tries to access the list outside the transaction
+    @Transactional(readOnly = true)
+    @Override
+    public DirectChannelDto getDirectChannel(UUID directChannelId) {
+        return
+                directChannelMapper.directChannelModelToDto(
+                    directChannelRepository
+                    .findByDirectChannelId(directChannelId)
+                    .orElseThrow(() ->
+                            new EntityNotFoundException("Channel not Found!"))
+                );
     }
 
 }

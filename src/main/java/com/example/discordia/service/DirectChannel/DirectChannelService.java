@@ -9,5 +9,6 @@ import java.util.UUID;
 public interface DirectChannelService {
 
     DirectChannelDto createDirectChannel(DirectChannelDto dto);
+    DirectChannelDto getDirectChannel(UUID directChannelId);
     List<DirectChannelDto> getDirectChannels(UUID userId);
 }
