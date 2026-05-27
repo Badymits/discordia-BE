@@ -1,10 +1,5 @@
 package com.example.discordia.dto;
 
-
-import com.example.discordia.model.ServerCategory;
-import com.example.discordia.model.ServerChannel;
-import com.example.discordia.model.ServerMembers;
-import com.example.discordia.model.UserModel;
 import java.util.UUID;
 import lombok.Data;
 
@@ -21,6 +16,6 @@ public class ServerModelDto {
     private String serverDescription;
     private String serverInviteCode;
 
-    private List<ServerMembers> serverMembers;
+    private List<ServerMemberDto> serverMembers;
     private List<ServerCategoryDto> serverCategories;
 }
