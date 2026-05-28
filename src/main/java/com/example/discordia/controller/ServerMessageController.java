@@ -2,15 +2,14 @@ package com.example.discordia.controller;
 
 import com.example.discordia.dto.ServerMessageDto;
 import com.example.discordia.dto.UploadImageDto;
+import com.example.discordia.service.Images.ImagesService;
 import com.example.discordia.service.ServerMessages.ServerMessagesService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -26,7 +25,8 @@ import java.util.UUID;
 public class ServerMessageController {
 
     private final SimpMessagingTemplate messagingTemplate;
-    private final ServerMessagesService messagesService;
+    private final ServerMessagesService serverMessagesService;
+    private final ImagesService imagesService;
 
     @MessageMapping("/sendMessage") // Endpoint matching the JavaScript destination
     public void sendMessage(@Payload ServerMessageDto message){
@@ -38,14 +38,14 @@ public class ServerMessageController {
         System.out.println("Message object: " + message);
 
         //messagesService.createMessage(message);
-        ServerMessageDto messageDto = messagesService.createMessage(message);
+        ServerMessageDto messageDto = serverMessagesService.createMessage(message);
         messagingTemplate.convertAndSend(destination, messageDto);
     }
 
     @GetMapping("{channelId}")
     public ResponseEntity<List<ServerMessageDto>> getMessagesByChannelId(
             @PathVariable UUID channelId){
-        List<ServerMessageDto> list = messagesService.getMessagesByChannelId(channelId);
+        List<ServerMessageDto> list = serverMessagesService.getMessagesByChannelId(channelId);
 
         return ResponseEntity.ok(list);
     }
@@ -60,7 +60,20 @@ public class ServerMessageController {
         ){
 
         log.info("received data: {}", serverId);
-        UploadImageDto dto = messagesService.uploadMessageImage(messageId, serverId, channelId, image);
+        UploadImageDto dto = imagesService.uploadMessageImage(messageId, channelId, "server", image);
+        return ResponseEntity.ok(dto);
+    }
+
+    @PatchMapping("/update-server-message/{messageId}")
+    public ResponseEntity<ServerMessageDto> updateServerMessage(
+            @PathVariable UUID messageId,
+            @RequestBody String message
+    ){
+        ServerMessageDto dto = serverMessagesService.updateServerMessage(messageId, message);
+
+        String destination = "/topic/" + dto.getServerId() + "/" + dto.getChannelId();
+        messagingTemplate.convertAndSend(destination, dto);
+
         return ResponseEntity.ok(dto);
     }
 
