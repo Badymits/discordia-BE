@@ -20,7 +20,7 @@ public interface ServerMessagesRepository extends JpaRepository<ServerMessage, L
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Transactional
-    @Query(" UPDATE ServerMessage sm SET sm.message = :message, sm.isEdited = true" +
+    @Query(" UPDATE ServerMessage sm SET sm.message = :message, sm.isEdited = true " +
             "WHERE sm.messageId = :messageId")
     int updateServerMessage(UUID messageId, String message);
 
