@@ -1,5 +1,6 @@
 package com.example.discordia.dto;
 
+import java.util.ArrayList;
 import java.util.UUID;
 import lombok.Data;
 
@@ -16,6 +17,6 @@ public class ServerModelDto {
     private String serverDescription;
     private String serverInviteCode;
 
-    private List<ServerMemberDto> serverMembers;
-    private List<ServerCategoryDto> serverCategories;
+    private ArrayList<ServerMemberDto> serverMembers;
+    private ArrayList<ServerCategoryDto> serverCategories;
 }
