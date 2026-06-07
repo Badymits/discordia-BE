@@ -4,15 +4,17 @@ package com.example.discordia.service.ServerChannel;
 import com.example.discordia.dto.ServerChannelDto;
 import com.example.discordia.model.ServerCategory;
 import com.example.discordia.model.ServerChannel;
-import com.example.discordia.repository.ServerCategoryRepository;
-import com.example.discordia.repository.ServerChannelRepository;
+import com.example.discordia.jparepository.JpaServerCategoryRepository;
+import com.example.discordia.jparepository.JpaServerChannelRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -20,16 +22,21 @@ import java.util.UUID;
 @Slf4j
 public class ServerChannelServiceImpl implements ServerChannelService{
 
-    private final ServerCategoryRepository categoryRepository;
-    private final ServerChannelRepository channelRepository;
+    private final JpaServerCategoryRepository categoryRepository;
+    private final JpaServerChannelRepository channelRepository;
 
     @Override
-    public ServerChannelDto createChannel(ServerChannelDto dto) {
+    @Transactional
+    @CacheEvict(
+            value = "serverDetailsCache",
+            key = "#serverId",
+            condition = "#serverId != null"
+    )
+    public ServerChannelDto createChannel(ServerChannelDto dto, UUID serverId) {
 
         ServerChannel channel = new ServerChannel();
         ServerCategory existingCategory =
                 categoryRepository.findByCategoryId(dto.getCategoryId());
-
 
         channel.setChannelName(dto.getChannelName());
         channel.setServerCategory(existingCategory);
@@ -54,8 +61,15 @@ public class ServerChannelServiceImpl implements ServerChannelService{
         return toChannelDto(channel);
     }
 
+    @Transactional
+    @CacheEvict(
+            value = "serverDetailsCache",
+            key = "#serverId",
+            condition = "#serverId != null"
+    )
     public void updateChannel(
             UUID channelId,
+            UUID serverId,
             ServerChannelDto channelDto
     ){
 
@@ -72,7 +86,12 @@ public class ServerChannelServiceImpl implements ServerChannelService{
     // @Transactional annotation. The transaction ensures that when .clear() accesses the lazy list,
     // Hibernate can successfully run the SQL SELECT to load the messages into memory before clearing them
     @Transactional
-    public void deleteChannel(UUID channelId){
+    @CacheEvict(
+            value = "serverDetailsCache",
+            key = "#serverId",
+            condition = "#serverId != null"
+    )
+    public void deleteChannel(UUID channelId, UUID serverId){
 
         ServerChannel channel = channelRepository
                 .findByChannelId(channelId).orElseThrow(() -> new EntityNotFoundException("Channel Not Found"));
@@ -80,6 +99,18 @@ public class ServerChannelServiceImpl implements ServerChannelService{
         channel.getServerMessages().clear();
 
         channelRepository.delete(channel);
+    }
+
+    // I'll keep this here just in case
+    @Transactional
+    public void detachChannelsFromCategory(UUID categoryId){
+
+        List<ServerChannel> channels =
+                channelRepository.findChannelsByCategoryId(categoryId)
+                        .orElseThrow(() -> new EntityNotFoundException("Channel list not found"));
+
+        channels.forEach(channelRepository::delete);
+
     }
 
     public ServerChannelDto toChannelDto(ServerChannel entity){
