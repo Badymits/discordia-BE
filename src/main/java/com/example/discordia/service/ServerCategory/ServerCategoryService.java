@@ -11,6 +11,6 @@ public interface ServerCategoryService {
     ServerCategoryDto createCategory(ServerCategoryDto categoryDto);
     ServerCategoryDto getCategoryById(UUID categoryId);
 
-    String updateCategory(UUID categoryId, String categoryName);
-    int deleteCategory(UUID categoryId);
+    String updateCategory(UUID categoryId, UUID serverId, String categoryName);
+    int deleteCategory(UUID categoryId, UUID serverId);
 }
