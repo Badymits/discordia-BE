@@ -1,4 +1,4 @@
-package com.example.discordia.repository;
+package com.example.discordia.jparepository;
 
 import org.jspecify.annotations.NullMarked;
 import org.springframework.data.jpa.repository.Query;
@@ -12,7 +12,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public interface UserRepository  extends JpaRepository<UserModel, Long>{
+public interface JpaUserRepository extends JpaRepository<UserModel, Long>{
 
     UserModel findByUsername (String username);
     Optional<UserModel> findByUserId(UUID userId);

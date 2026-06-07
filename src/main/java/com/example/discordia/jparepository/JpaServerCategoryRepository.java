@@ -1,4 +1,4 @@
-package com.example.discordia.repository;
+package com.example.discordia.jparepository;
 
 import com.example.discordia.model.ServerCategory;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -10,7 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.UUID;
 
 @Repository
-public interface ServerCategoryRepository extends JpaRepository<ServerCategory, Long> {
+public interface JpaServerCategoryRepository extends JpaRepository<ServerCategory, Long> {
 
     ServerCategory findByCategoryId (UUID categoryId);
 

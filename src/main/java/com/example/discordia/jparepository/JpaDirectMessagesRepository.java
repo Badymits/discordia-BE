@@ -1,4 +1,4 @@
-package com.example.discordia.repository;
+package com.example.discordia.jparepository;
 
 import com.example.discordia.model.DirectMessage;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -13,11 +13,16 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public interface DirectMessagesRepository extends JpaRepository<DirectMessage, UUID> {
+public interface JpaDirectMessagesRepository extends JpaRepository<DirectMessage, UUID> {
 
     @Query("SELECT dm FROM DirectMessage dm JOIN FETCH " +
             "dm.directChannelModel dmc WHERE dmc.directChannelId = :directChannelId ORDER BY dm.dateTimestamp")
     List<DirectMessage> findMessagesByChannelId(@Param("directChannelId") UUID directChannelId);
+
+    @Query("SELECT dm FROM DirectMessage dm JOIN FETCH " +
+            "dm.directChannelModel dmc WHERE dmc.directChannelId = :directChannelId " +
+            "AND dm.isRead = false")
+    Optional<List<DirectMessage>> findUnreadMessagesByChannelId(UUID directChannelId);
 
     //
     @Modifying(clearAutomatically = true, flushAutomatically = true)
@@ -35,6 +40,10 @@ public interface DirectMessagesRepository extends JpaRepository<DirectMessage, U
     @Transactional
     @Query("DELETE FROM DirectMessage dm WHERE dm.messageId = :messageId")
     void deleteDirectMessage(UUID messageId);
+
+    @Query("SELECT COUNT(m) FROM DirectMessage m WHERE " +
+            "m.directChannelModel.directChannelId = :channelId AND m.isRead = false")
+    Integer getTotalCountOfUnreadMessages(UUID channelId);
 
     Optional<DirectMessage> findByMessageId(UUID messageId);
 

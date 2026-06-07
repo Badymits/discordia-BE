@@ -1,4 +1,4 @@
-package com.example.discordia.repository;
+package com.example.discordia.jparepository;
 
 
 import com.example.discordia.model.ServerModel;
@@ -13,7 +13,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public interface ServerModelRepository extends JpaRepository<ServerModel, UUID> {
+public interface JpaServerModelRepository extends JpaRepository<ServerModel, UUID> {
 
     // the findBy "ID" refers to the name of the field declared in the Model file
     Optional<ServerModel> findByServerId(UUID serverId);

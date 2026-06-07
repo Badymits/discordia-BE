@@ -1,4 +1,4 @@
-package com.example.discordia.repository;
+package com.example.discordia.jparepository;
 
 
 import com.example.discordia.model.ServerChannel;
@@ -8,17 +8,22 @@ import org.springframework.stereotype.Repository;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 
 @Repository
-public interface ServerChannelRepository extends JpaRepository<ServerChannel, UUID> {
+public interface JpaServerChannelRepository extends JpaRepository<ServerChannel, UUID> {
 
     // something added here
 //    @Query(
 //        "SELECT sc FROM ServerChannel sc WHERE sc.channelId = :channelId ORDER BY sc.createdDate ASC"
 //    )
+    @Query("SELECT sc FROM ServerChannel sc JOIN FETCH " +
+            "sc.serverCategory sCat WHERE sCat.categoryId = :categoryId")
+    Optional<List<ServerChannel>> findChannelsByCategoryId(UUID categoryId);
+
     @Modifying
     @Transactional
     @Query("UPDATE ServerChannel sc SET sc.channelName = :channelName, " +

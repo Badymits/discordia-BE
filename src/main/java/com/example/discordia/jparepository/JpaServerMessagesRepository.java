@@ -1,4 +1,4 @@
-package com.example.discordia.repository;
+package com.example.discordia.jparepository;
 
 import com.example.discordia.model.ServerMessage;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -13,7 +13,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public interface ServerMessagesRepository extends JpaRepository<ServerMessage, Long> {
+public interface JpaServerMessagesRepository extends JpaRepository<ServerMessage, Long> {
+
     @Query("SELECT sm FROM ServerMessage sm JOIN FETCH " +
             "sm.serverChannel sc WHERE sc.channelId = :channelId ORDER BY sm.dateTimestamp ASC")
     List<ServerMessage> findMessagesByChannelId(@Param("channelId") UUID channelId);
@@ -26,7 +27,17 @@ public interface ServerMessagesRepository extends JpaRepository<ServerMessage, L
 
     @Modifying
     @Transactional
+    @Query("DELETE FROM ServerMessage sm WHERE sm.messageId = :messageId")
+    void deleteServerMessage(UUID messageId);
+
+    @Modifying
+    @Transactional
     @Query("UPDATE ServerMessage m SET m.messageImgUrl = :url WHERE m.messageId = :messageId")
     void updateImgUrl(UUID messageId, String url);
+
     Optional<ServerMessage> findByMessageId(UUID messageId);
+
+    @Query("SELECT sm FROM ServerMessage sm " +
+            "WHERE sm.repliedTo.messageId = :messageId")
+    Optional<List<ServerMessage>> findRepliedToMessagesByMessageId(UUID messageId);
 }

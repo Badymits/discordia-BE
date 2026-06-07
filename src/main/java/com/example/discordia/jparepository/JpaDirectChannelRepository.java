@@ -1,7 +1,6 @@
-package com.example.discordia.repository;
+package com.example.discordia.jparepository;
 
 
-import com.example.discordia.dto.UserDto;
 import com.example.discordia.model.DirectChannel;
 import com.example.discordia.model.UserModel;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -14,7 +13,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Repository
-public interface DirectChannelRepository extends JpaRepository<DirectChannel, UUID> {
+public interface JpaDirectChannelRepository extends JpaRepository<DirectChannel, UUID> {
 
 
     Optional<DirectChannel> findByDirectChannelId (UUID directChannelId);
@@ -29,4 +28,5 @@ public interface DirectChannelRepository extends JpaRepository<DirectChannel, UU
     @Query("SELECT dc FROM DirectChannel dc " +
             "WHERE :user MEMBER OF dc.directChannelParticipants")
     List<DirectChannel> findDirectChannelsByUserId (@Param("user") UserModel user);
+
 }
