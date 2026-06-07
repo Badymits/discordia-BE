@@ -23,9 +23,11 @@ public class DirectChannelController {
 
     @PostMapping("/create-direct-channel")
     public ResponseEntity<DirectChannelDto> createDirectChannel(
-            @RequestBody DirectChannelDto directChannelDto
+            @RequestBody DirectChannelDto directChannelDto,
+            @RequestBody UUID userId
     ){
-        DirectChannelDto dto = directChannelService.createDirectChannel(directChannelDto);
+        DirectChannelDto dto =
+                directChannelService.createDirectChannel(directChannelDto, userId);
         log.info("Checking dto created: {}", dto);
         return ResponseEntity.ok(dto);
     }
@@ -48,5 +50,10 @@ public class DirectChannelController {
 
         log.info("Channel Found! {}", channelDto);
         return ResponseEntity.ok(channelDto);
+    }
+
+    @PatchMapping("/update-read-messages/{directChannelId}")
+    public void updateReadMessagesInChannel(@PathVariable UUID directChannelId){
+        directChannelService.updateReadMessagesInChannel(directChannelId);
     }
 }
