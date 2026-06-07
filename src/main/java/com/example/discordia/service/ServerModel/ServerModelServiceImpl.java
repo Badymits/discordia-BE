@@ -1,15 +1,20 @@
 package com.example.discordia.service.ServerModel;
 
 import com.example.discordia.dto.ServerMetaDataDto;
+import com.example.discordia.mappers.ServerChannelMapper;
+import com.example.discordia.mappers.ServerModelMapper;
 import com.example.discordia.service.Cloudinary.CloudinaryService;
 import com.example.discordia.dto.ServerCategoryDto;
 import com.example.discordia.dto.ServerChannelDto;
 import com.example.discordia.dto.ServerModelDto;
 import com.example.discordia.model.*;
-import com.example.discordia.repository.*;
+import com.example.discordia.jparepository.*;
 
 
 import jakarta.persistence.EntityNotFoundException;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -20,25 +25,29 @@ import lombok.extern.slf4j.Slf4j;
 import java.util.concurrent.ThreadLocalRandom;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class ServerModelServiceImpl implements ServerModelService {
 
-    private final ServerModelRepository serverModelRepository;
-    private final ServerChannelRepository serverChannelRepository;
-    private final ServerMembersRepository serverMembersRepository;
-    private final ServerCategoryRepository serverCategoryRepository;
+    private final JpaServerModelRepository serverModelRepository;
+    private final JpaServerChannelRepository serverChannelRepository;
+    private final JpaServerMembersRepository serverMembersRepository;
+    private final JpaServerCategoryRepository serverCategoryRepository;
 
-    private final UserRepository userRepository;
+    private final ServerModelMapper serverModelMapper;
+    private final ServerChannelMapper serverChannelMapper;
+
+    private final JpaUserRepository userRepository;
     private final CloudinaryService cloudinaryService;
 
     final String lowerCase = "abcdefghijklmnopqrstuvwxyz";
     final String upperCase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     final String numeric = "0123456789";
 
-
+    @Cacheable(value = "serverDetailsCache", key = "#serverId")
     public ServerModelDto findByServerID(UUID serverId){
 
         ServerModel server = serverModelRepository.findByServerId(serverId)
@@ -50,99 +59,90 @@ public class ServerModelServiceImpl implements ServerModelService {
 
         log.info("User Owner??: {}", user);
 
-
-        List<ServerCategoryDto> categoryDtoList = server
-                .getServerCategories()
+        ArrayList<ServerCategoryDto> categoryDtoList = new ArrayList<>(
+                server.getServerCategories())
                 .stream()
                 .map(category -> {
+                    ArrayList<ServerChannelDto> channels = new ArrayList<>(category
+                            .getCategoryChannels())
+                            .stream().sorted(Comparator.comparing((ServerChannel c) -> {
+                                        if (c.getIcon().equals("text")) return 1;
+                                        if (c.getIcon().equals("voice")) return 2;
+                                        return 3;
+                                    }).thenComparing(ServerChannel::getDateCreated)
+                            ).map(channel -> toChannelDto(channel, category))
+                            .collect(Collectors.toCollection(ArrayList::new));
 
-                    // Filter only channels belonging to this category
-                    List<ServerChannelDto> channels = category
-                            .getCategoryChannels()
-                            .stream()
-                            // sort using Comparator for createdDate (oldest to newest)
-                            .sorted(Comparator.comparing((ServerChannel c) -> {
-                                if (c.getIcon().equals("text")) return 1;
-                                if (c.getIcon().equals("voice")) return 2;
-                                return 3;
-                            }).thenComparing(ServerChannel::getDateCreated))
-                            .map(channel ->
-                                    toChannelDto(channel, category)
-                            ).toList();
+                    return toCategoryDto(category, channels);
+                }).collect(Collectors.toCollection(ArrayList::new));
 
-                        return toCategoryDto(category, channels);
-                    }
-                ).toList();
-
-        return toDto(
-                server,
-                categoryDtoList,
-                user
-        );
+        return toDto(server, categoryDtoList, user);
     }
 
 
     @Override
-    public List<ServerModelDto> getServersByUserId(UUID userId, String username){
+    // this intercepts the method's return value and hands it to redis serializer
+    @Cacheable(
+            value = "userServersCache",
+            key = "{#a0}",
+            condition = "#a0 != null" // doesnt cache if inputs are missing
+    )
+    public ArrayList<ServerModelDto> getServersByUserId(UUID userId, String username){
 
         List<ServerModel> serverList =
                 serverModelRepository.findServersByUserId(userId);
 
+        // Just a defensive check despite the list already being null if servers don't exist
+        if (serverList == null){
+            return new ArrayList<>();
+        }
+
         UserModel user = userRepository.findByUserId(userId)
                 .orElseThrow(() -> new EntityNotFoundException("User Not Found"));
 
-        log.info("existing models: {}",serverList.toString());
+        log.info("existing models: {}", serverList);
 
         return serverList.stream()
                 .map(serverModel -> {
-                    // Convert plain channels to DTOs
-                    List<ServerChannelDto> channelDtos = serverModel
+                    ArrayList<ServerChannelDto> channelDtos = serverModel
                             .getServerChannels()
                             .stream()
-                            .map(channel ->
-                                    toChannelDto(
-                                        channel,
-                                        channel.getServerCategory()
-                                    )
-                            ).toList();
+                            .map(channel -> toChannelDto(
+                                    channel,
+                                    channel.getServerCategory()
+                            )).collect(Collectors.toCollection(ArrayList::new));
 
-                    // Convert plain categories to DTOs
-                    List<ServerCategoryDto> categoryDtos = serverModel
+                    ArrayList<ServerCategoryDto> categoryDtos = serverModel
                             .getServerCategories()
                             .stream()
-                            .map(category ->
-                                    toCategoryDto(category, channelDtos)
-                            )
-                            .toList();
+                            .map(category -> toCategoryDto(category, channelDtos))
+                            .collect(Collectors.toCollection(ArrayList::new));
 
-                    return toDto(
-                            serverModel,
-                            categoryDtos,
-                            user
-                    );
-
-                }).toList();
+                    return toDto(serverModel, categoryDtos, user);
+                }).collect(Collectors.toCollection(ArrayList::new));
     }
 
     @Override
     @Transactional // since we're calling save() method of repository
-    public ServerModelDto createServer(
-            ServerModelDto dto,
-            MultipartFile image
-    ){
-
+    @CacheEvict(
+            value = "userServersCache",
+            key = "#dto.userId",
+            condition = "#dto.userId != null"
+    )
+    public ServerModelDto createServer(ServerModelDto dto, MultipartFile image){
         ServerMembers serverMember = new ServerMembers();
         ServerChannel generalChannel = new ServerChannel();
+
+        ServerCategory rootCategory = new ServerCategory();
         ServerCategory serverCategory = new ServerCategory();
 
         UserModel serverOwner =
                 userRepository.findByUserId(dto.getUserId())
                         .orElseThrow(() -> new EntityNotFoundException("User Not Found"));
 
-        List<ServerMembers> serverMembersList = new ArrayList<>();
-        List<ServerChannel> serverChannelsList = new ArrayList<>();
-        List<ServerCategory> serverCategoryList = new ArrayList<>();
-
+        ArrayList<ServerMembers> serverMembersList = new ArrayList<>();
+        ArrayList<ServerChannel> serverChannelsList = new ArrayList<>();
+        ArrayList<ServerCategory> serverCategoryList = new ArrayList<>();
 
         log.info("Server Owner: {}", serverOwner.toString());
 
@@ -150,15 +150,10 @@ public class ServerModelServiceImpl implements ServerModelService {
         serverChannelsList.add(generalChannel);
         serverCategoryList.add(serverCategory);
 
-        ServerModel serverModel = toEntity(
-                dto,
-                serverMembersList,
-                serverChannelsList,
-                serverCategoryList,
-                serverOwner,
-                image
-        );
+        rootCategory.setIsRootFolder(true);
+        serverCategoryRepository.save(rootCategory);
 
+        ServerModel serverModel = serverModelMapper.dtoToServerModel(dto);
 
         setServerMemberValues(serverMember, serverOwner, serverModel);
         setChannelValues(generalChannel, serverModel, serverCategory);
@@ -171,15 +166,18 @@ public class ServerModelServiceImpl implements ServerModelService {
         serverCategoryRepository.save(serverCategory);
 
         // Create new list for server channels
-        List<ServerChannelDto> channelDtoList = new ArrayList<>();
-        List<ServerCategoryDto> categoryDtoList = new ArrayList<>();
+        ArrayList<ServerChannelDto> channelDtoList = new ArrayList<>();
+        ArrayList<ServerCategoryDto> categoryDtoList = new ArrayList<>();
 
         channelDtoList.add(toChannelDto(generalChannel, serverCategory));
         categoryDtoList.add(toCategoryDto(serverCategory, channelDtoList));
 
-        return toDto(serverModel, categoryDtoList, serverOwner);
+        return serverModelMapper.modelServerToDto(serverModel);
     }
 
+
+    @Transactional
+    @CachePut(value = "serverDetailsCache", key = "#serverId")
     public String updateServer(
             UUID serverId,
             ServerModelDto dto,
@@ -189,9 +187,9 @@ public class ServerModelServiceImpl implements ServerModelService {
             throw new EntityNotFoundException("Server Id is null! Cannot update server");
         }
 
-        ServerModel server = serverModelRepository.findByServerId(
-                serverId
-        ).orElseThrow(() -> new EntityNotFoundException("Server Not Found!"));
+        ServerModel server = serverModelRepository
+                .findByServerId(serverId)
+                .orElseThrow(() -> new EntityNotFoundException("Server Not Found!"));
 
         if (!image.isEmpty()){
             String serverImgUrl = uploadServerImage(
@@ -303,7 +301,7 @@ public class ServerModelServiceImpl implements ServerModelService {
     // Mapper
     private ServerModelDto toDto(
             ServerModel entity,
-            List<ServerCategoryDto> categoryDto,
+            ArrayList<ServerCategoryDto> categoryDto,
             UserModel user
     ){
         ServerModelDto dto = new ServerModelDto();
@@ -350,7 +348,7 @@ public class ServerModelServiceImpl implements ServerModelService {
 
     private ServerCategoryDto toCategoryDto(
             ServerCategory category,
-            List<ServerChannelDto> serverChannels
+            ArrayList<ServerChannelDto> serverChannels
     ){
         ServerCategoryDto categoryDto = new ServerCategoryDto();
 
@@ -385,7 +383,7 @@ public class ServerModelServiceImpl implements ServerModelService {
     private void setCategoryValues(
             ServerCategory category,
             ServerModel server,
-            List<ServerChannel> serverChannels
+            ArrayList<ServerChannel> serverChannels
     ){
         category.setCategoryName("Text Channels");
         category.setCategoryChannels(serverChannels);
