@@ -4,32 +4,43 @@ package com.example.discordia.service.DirectChannel;
 import com.example.discordia.dto.DirectChannelDto;
 import com.example.discordia.mappers.DirectChannelMapper;
 import com.example.discordia.model.DirectChannel;
+import com.example.discordia.model.DirectMessage;
 import com.example.discordia.model.UserModel;
-import com.example.discordia.repository.DirectChannelRepository;
-import com.example.discordia.repository.UserRepository;
+import com.example.discordia.jparepository.JpaDirectChannelRepository;
+import com.example.discordia.jparepository.JpaDirectMessagesRepository;
+import com.example.discordia.jparepository.JpaUserRepository;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Comparator;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class DirectChannelServiceImpl implements DirectChannelService {
 
-    private final DirectChannelRepository directChannelRepository;
+    private final JpaDirectChannelRepository directChannelRepository;
+    private final JpaDirectMessagesRepository directMessagesRepository;
+
     private final DirectChannelMapper directChannelMapper;
-    private final UserRepository userRepository;
+    private final JpaUserRepository userRepository;
 
 
     @Transactional
-    public DirectChannelDto createDirectChannel(DirectChannelDto dto){
+    @CacheEvict(
+            value = "directChannelsCache",
+            key = "#userId",
+            condition = "#userId != null"
+    )
+    public DirectChannelDto createDirectChannel(DirectChannelDto dto, UUID userId){
 
         if (dto.getDirectChannelParticipants().isEmpty()){
             throw new EntityNotFoundException("Cannot proceed with empty room");
@@ -69,8 +80,8 @@ public class DirectChannelServiceImpl implements DirectChannelService {
 
     }
 
-
-    public List<DirectChannelDto> getDirectChannels(UUID userId){
+    @Cacheable(value = "directChannelsCache", key = "{#a0}")
+    public ArrayList<DirectChannelDto> getDirectChannels(UUID userId){
 
         UserModel existingUser = userRepository
                 .findByUserId(userId)
@@ -81,7 +92,7 @@ public class DirectChannelServiceImpl implements DirectChannelService {
                 .stream()
                 .sorted(Comparator.comparing(DirectChannel::getChannelCreated))
                 .map(directChannelMapper::directChannelModelToDto)
-                .toList();
+                .collect(Collectors.toCollection(ArrayList::new));
     }
 
     // Since the channel participants are marked as Lazy Loading
@@ -89,6 +100,7 @@ public class DirectChannelServiceImpl implements DirectChannelService {
     // if it tries to access the list outside the transaction
     @Transactional(readOnly = true)
     @Override
+    @Cacheable(value = "directChannelDetailsCache", key = "#directChannelId")
     public DirectChannelDto getDirectChannel(UUID directChannelId) {
         return
                 directChannelMapper.directChannelModelToDto(
@@ -97,6 +109,23 @@ public class DirectChannelServiceImpl implements DirectChannelService {
                     .orElseThrow(() ->
                             new EntityNotFoundException("Channel not Found!"))
                 );
+    }
+
+    @Transactional
+    @CachePut(
+            value = "directChannelDetailsCache",
+            key = "{#a0}",
+            condition = "#a0 != null"
+    )
+    public void updateReadMessagesInChannel(UUID channelId){
+
+        List<DirectMessage> unreadMessages =
+                directMessagesRepository.findUnreadMessagesByChannelId(channelId)
+                .orElse(Collections.emptyList());
+
+        unreadMessages.forEach(message -> message.setIsRead(true));
+
+        directMessagesRepository.saveAllAndFlush(unreadMessages);
     }
 
 }
