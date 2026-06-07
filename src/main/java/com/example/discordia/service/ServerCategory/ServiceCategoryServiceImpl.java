@@ -5,11 +5,13 @@ import com.example.discordia.dto.ServerCategoryDto;
 import com.example.discordia.model.ServerCategory;
 import com.example.discordia.model.ServerChannel;
 import com.example.discordia.model.ServerModel;
-import com.example.discordia.repository.ServerCategoryRepository;
-import com.example.discordia.repository.ServerModelRepository;
+import com.example.discordia.jparepository.JpaServerCategoryRepository;
+import com.example.discordia.jparepository.JpaServerModelRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -21,10 +23,15 @@ import java.util.UUID;
 @Slf4j
 public class ServiceCategoryServiceImpl implements ServerCategoryService{
 
-    private final ServerCategoryRepository categoryRepository;
-    private final ServerModelRepository serverModelRepository;
+    private final JpaServerCategoryRepository categoryRepository;
+    private final JpaServerModelRepository serverModelRepository;
 
     @Override
+    @CacheEvict(
+        value = "serverDetailsCache",
+        key = "#dto.serverId",
+        condition = "#dto.serverId != null"
+    )
     public ServerCategoryDto createCategory(ServerCategoryDto dto){
 
         ServerCategory category = new ServerCategory();
@@ -81,7 +88,13 @@ public class ServiceCategoryServiceImpl implements ServerCategoryService{
     }
 
     @Override
-    public String updateCategory(UUID categoryId, String categoryName){
+    @Transactional
+    @CacheEvict(
+            value = "serverDetailsCache",
+            key = "#serverId",
+            condition = "#serverId != null"
+    )
+    public String updateCategory(UUID categoryId, UUID serverId, String categoryName){
 
         if (categoryId != null){
             categoryRepository.updateCategory(
@@ -95,7 +108,15 @@ public class ServiceCategoryServiceImpl implements ServerCategoryService{
     }
 
     @Override
-    public int deleteCategory(UUID categoryId){ return categoryRepository.deleteCategory(categoryId); }
+    @Transactional
+    @CacheEvict(
+            value = "serverDetailsCache",
+            key = "#serverId",
+            condition = "#serverId != null"
+    )
+    public int deleteCategory(UUID categoryId, UUID serverId){
+        return categoryRepository.deleteCategory(categoryId);
+    }
 
 
 }
