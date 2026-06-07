@@ -3,40 +3,55 @@ package com.example.discordia.service.ServerMessages;
 import com.example.discordia.dto.ReplyMessageDto;
 import com.example.discordia.dto.ServerMessageDto;
 import com.example.discordia.dto.UploadImageDto;
+import com.example.discordia.mappers.ServerMessageMapper;
 import com.example.discordia.model.ServerChannel;
 import com.example.discordia.model.ServerMessage;
 import com.example.discordia.model.UserModel;
-import com.example.discordia.repository.ServerChannelRepository;
-import com.example.discordia.repository.ServerMessagesRepository;
-import com.example.discordia.repository.UserRepository;
+import com.example.discordia.jparepository.JpaServerChannelRepository;
+import com.example.discordia.jparepository.JpaServerMessagesRepository;
+import com.example.discordia.jparepository.JpaUserRepository;
 import com.example.discordia.service.Cloudinary.CloudinaryService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
 @RequiredArgsConstructor
+@Transactional
 public class ServerMessagesServiceImpl implements ServerMessagesService {
 
-    private final ServerMessagesRepository messagesRepository;
-    private final ServerChannelRepository channelRepository;
-    private final UserRepository userRepository;
+    private final JpaServerMessagesRepository messagesRepository;
+    private final JpaServerChannelRepository channelRepository;
+    private final JpaUserRepository userRepository;
+
     private final CloudinaryService cloudinaryService;
+
+    private final ServerMessageMapper serverMessageMapper;
 
     @Transactional
     @Async
+    @CacheEvict(
+            value = "channelMessagesCache",
+            key = "#dto.channelId",
+            condition = "#dto.channelId != null"
+    )
     public ServerMessageDto createMessage(ServerMessageDto dto){
 
         ServerMessage message = toEntity(dto);
+
         if (message == null){
             throw new Error("Error Creating message");
         }
@@ -45,8 +60,13 @@ public class ServerMessagesServiceImpl implements ServerMessagesService {
         return toDto(message);
     }
 
-    public UploadImageDto uploadMessageImage(UUID messageId, UUID serverId, UUID channelId,
-            MultipartFile image) {
+    @Transactional
+    public UploadImageDto uploadMessageImage(
+            UUID messageId,
+            UUID serverId,
+            UUID channelId,
+            MultipartFile image
+    ) {
 
         String messageImgUrl;
         String messageFolderName = serverId + "_" + channelId + "_" + "Media_Img_Folder";
@@ -58,26 +78,93 @@ public class ServerMessagesServiceImpl implements ServerMessagesService {
             );
 
         } catch (Exception e){
-            e.printStackTrace();
             System.out.println(e);
             throw new Error("Cannot create cloudinary URL");
         }
 
         if (!messageImgUrl.trim().isEmpty()){
             messagesRepository.updateImgUrl(messageId, messageImgUrl);
+
+            ServerMessage updatedMessage =
+                    messagesRepository.findByMessageId(messageId)
+                            .orElseThrow(() -> new EntityNotFoundException("Message Not Found!"));
+
+            return toImageDto(updatedMessage);
         }
 
-        return toUploadImageDto(
-                messageId,
-                messageImgUrl
-        );
+        return null;
     }
 
-    public List<ServerMessageDto> getMessagesByChannelId(UUID channelId){
-        List<ServerMessage> list =
-                messagesRepository.findMessagesByChannelId(channelId);
+    @Cacheable(
+            value = "channelMessagesCache",
+            key = "#channelId",
+            condition = "#channelId != null"
+    )
+    public ArrayList<ServerMessageDto> getMessagesByChannelId(UUID channelId){
 
-        return list.stream().map(this::toDto).toList();
+        if (channelId == null){
+            throw new EntityNotFoundException("Cannot retrieve messages with empty channelId");
+        }
+
+//        return messagesRepository.findMessagesByChannelId(channelId)
+//                .stream()
+//                .map(serverMessageMapper::serverMessageToDto)
+//                .toList();
+
+        return messagesRepository.findMessagesByChannelId(channelId)
+                .stream()
+                .map(serverMessageMapper::serverMessageToDto)
+                .collect(Collectors.toCollection(ArrayList::new));
+    }
+
+    @Transactional
+    @CacheEvict(
+            value = "channelMessagesCache",
+            key = "#channelId",
+
+            // finds every cached page associated with this channel ID and blow them all up.
+            // tho it's an aggressive approach this just ensures consistency but edits are relatively rare
+            allEntries = true
+    )
+    public ServerMessageDto updateServerMessage(UUID messageId, UUID channelId, String message){
+
+        if (messageId == null){
+            throw new EntityNotFoundException("Empty message ID Cannot be updated!");
+        }
+
+        int updatedValue = messagesRepository.updateServerMessage(messageId, message);
+
+        if (updatedValue == 0){
+            throw new EntityNotFoundException("Error in updating message. Please try again later");
+        }
+
+        return messagesRepository.findByMessageId(messageId)
+                .map(serverMessageMapper::serverMessageToDto)
+                .orElseThrow(() -> new EntityNotFoundException("Message with ID not found!"));
+    }
+
+    @Transactional
+    @CacheEvict(
+            value = "channelMessagesCache",
+            key = "#channelId",
+            condition = "#channelId != null"
+    )
+    public void deleteServerMessage(UUID messageId, UUID channelId){
+        detachParentMessageFromReplies(messageId);
+        messagesRepository.deleteServerMessage(messageId);
+
+    }
+
+    @Transactional
+    public void detachParentMessageFromReplies(UUID messageId){
+
+        List<ServerMessage> replies = messagesRepository
+                .findRepliedToMessagesByMessageId(messageId)
+                .orElseThrow(() -> new EntityNotFoundException("Reply Object not found"));
+
+        replies.forEach(reply -> reply.setRepliedTo(null));
+
+        messagesRepository.saveAllAndFlush(replies);
     }
 
 
@@ -168,6 +255,27 @@ public class ServerMessagesServiceImpl implements ServerMessagesService {
         return dto;
     }
 
+    private UploadImageDto toImageDto(ServerMessage message){
+
+        UploadImageDto imageDto = new UploadImageDto();
+
+        imageDto.setMessageId(message.getMessageId());
+        imageDto.setMessageImgUrl(message.getMessageImgUrl());
+        imageDto.setDisplayName(message.getUser().getDisplayName());
+        imageDto.setUserAvatar(message.getUser().getImgUrl());
+
+        imageDto.setMessage(message.getMessage());
+        imageDto.setDateTimestamp(message.getDateTimestamp());
+
+        imageDto.setIsContentWithImg(message.getIsContentWithImg());
+        imageDto.setIsReply(message.getIsReply());
+        imageDto.setIsEdited(message.getIsEdited());
+
+        imageDto.setRepliedTo(toReplyMessageDto(message.getRepliedTo()));
+
+        return imageDto;
+    }
+
     public ReplyMessageDto toReplyMessageDto(ServerMessage message){
         ReplyMessageDto dto = new ReplyMessageDto();
 
@@ -189,13 +297,4 @@ public class ServerMessagesServiceImpl implements ServerMessagesService {
         return dto;
     }
 
-    public UploadImageDto toUploadImageDto(UUID messageId, String url){
-
-        UploadImageDto dto = new UploadImageDto();
-
-        dto.setMessageId(messageId);
-        dto.setMessageImgUrl(url);
-
-        return dto;
-    }
 }
