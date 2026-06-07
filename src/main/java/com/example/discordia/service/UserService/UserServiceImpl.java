@@ -3,13 +3,14 @@ package com.example.discordia.service.UserService;
 import com.example.discordia.service.Cloudinary.CloudinaryService;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.example.discordia.model.UserModel;
 import com.example.discordia.dto.UserDto;
-import com.example.discordia.repository.UserRepository;
+import com.example.discordia.jparepository.JpaUserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,7 +28,7 @@ public class UserServiceImpl implements UserService {
     @Autowired
     PasswordEncoder passwordEncoder;
 
-    private final UserRepository userRepository;
+    private final JpaUserRepository userRepository;
     private final CloudinaryService cloudinaryService;
 
 
@@ -37,6 +38,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Cacheable(value = "userCache", key = "#userId")
     public UserDto findByUserId(UUID userId){
 
         UserModel existingUser = userRepository.findByUserId(userId)
@@ -46,6 +48,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @CachePut(value = "userCache", key = "#userDto.userId")
     public UserDto updateUser(UserDto userDto, MultipartFile image){
 
         UserModel existingUser = userRepository.findByUserId(
@@ -82,7 +85,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserDto saveUser(UserDto userDto){
+    public UserDto saveUser(UserDto userDto) {
 
         UserModel user = new UserModel();
 
@@ -90,19 +93,19 @@ public class UserServiceImpl implements UserService {
         user.setLastName(userDto.getLastname());
         user.setEmailAddress(userDto.getEmail());
         user.setUsername(userDto.getUsername());
-        user.setUserPassword(
-                passwordEncoder.encode(userDto.getPassword())
-        );
+//        user.setUserPassword(
+//                passwordEncoder.encode(userDto.getPassword())
+//        );
         user.setDisplayName(
                 userDto.getDisplayName()
         );
 
         UserModel savedUser = userRepository.save(user);
 
-
         return toDto(savedUser);
     }
-    @Cacheable
+
+    @Cacheable(value = "userCache", key = "#userId")
     @Override
     public List<UserDto> getUsers(String searchTerm, UUID userId){
 
@@ -121,8 +124,6 @@ public class UserServiceImpl implements UserService {
         UserDto user = new UserDto();
 
         user.setUserId(entity.getUserId());
-        user.setFirstname(entity.getFirstName());
-        user.setLastname(entity.getLastName());
         user.setEmail(entity.getEmailAddress());
         user.setUsername(entity.getUsername());
         user.setDisplayName(entity.getDisplayName());
