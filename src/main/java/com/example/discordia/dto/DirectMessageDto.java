@@ -4,7 +4,6 @@ package com.example.discordia.dto;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 @EqualsAndHashCode(callSuper = true)
@@ -14,5 +13,6 @@ public class DirectMessageDto extends MessageDto {
     private UUID directMessageId;
     private UUID directChannelId;
     private UUID userId;
+    private UUID recipientId;
 
 }
