@@ -41,6 +41,8 @@ public class Message {
     @Column(name = "MessageImgUrl")
     private String messageImgUrl;
 
+    @Column(name = "UnreadMessages", columnDefinition = "integer default 0")
+    private Integer unreadMessages = 0;
 
     @Getter
     @Setter
@@ -58,6 +60,9 @@ public class Message {
     @Setter
     @Column(name = "isServerInvite")
     private Boolean isServerInvite;
+
+    @Column(name = "isMessageRead")
+    private Boolean isRead;
 
     @CreatedDate
     @Setter

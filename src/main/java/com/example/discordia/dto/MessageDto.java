@@ -26,6 +26,7 @@ public class MessageDto {
     private String userAvatar;
     private String message;
     private String messageImgUrl;
+    private Integer unreadMessages;
 
     private Boolean isContentWithImg;
     private Boolean isReply;
