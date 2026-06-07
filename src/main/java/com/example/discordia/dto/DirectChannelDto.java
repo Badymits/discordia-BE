@@ -1,7 +1,6 @@
 package com.example.discordia.dto;
 
 
-import com.example.discordia.model.UserModel;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -14,4 +13,6 @@ public class DirectChannelDto {
     private UUID directChannelId;
     private List<UserDto> directChannelParticipants;
     private LocalDateTime channelCreated;
+
+    private Boolean isRead;
 }
