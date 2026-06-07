@@ -5,8 +5,8 @@ import com.example.discordia.dto.UploadImageDto;
 import com.example.discordia.mappers.UploadImageMessageMapper;
 import com.example.discordia.model.DirectMessage;
 import com.example.discordia.model.ServerMessage;
-import com.example.discordia.repository.DirectMessagesRepository;
-import com.example.discordia.repository.ServerMessagesRepository;
+import com.example.discordia.jparepository.JpaDirectMessagesRepository;
+import com.example.discordia.jparepository.JpaServerMessagesRepository;
 import com.example.discordia.service.Cloudinary.CloudinaryService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -23,8 +23,8 @@ import java.util.UUID;
 @Slf4j
 public class ImagesServiceImpl implements ImagesService {
 
-    private final ServerMessagesRepository serverMessagesRepository;
-    private final DirectMessagesRepository directMessagesRepository;
+    private final JpaServerMessagesRepository serverMessagesRepository;
+    private final JpaDirectMessagesRepository directMessagesRepository;
     private final UploadImageMessageMapper imageMessageMapper;
     private final CloudinaryService cloudinaryService;
 
@@ -95,31 +95,4 @@ public class ImagesServiceImpl implements ImagesService {
 
         return null;
     }
-
-//    private UploadImageDto toImageDto(Object message, String messageType){
-//
-//        UploadImageDto imageDto = new UploadImageDto();
-//
-//        if (Objects.equals(messageType, "server")){
-//
-//        }
-//
-//        imageDto.setMessageId(message.getMessageId());
-//        imageDto.setMessageImgUrl(message.getMessageImgUrl());
-//        imageDto.setDisplayName(message.getUser().getDisplayName());
-//        imageDto.setUserAvatar(message.getUser().getImgUrl());
-//
-//        imageDto.setMessage(message.getMessage());
-//        imageDto.setDateTimestamp(message.getDateTimestamp());
-//
-//        imageDto.setIsContentWithImg(message.getIsContentWithImg());
-//        imageDto.setIsReply(message.getIsReply());
-//        imageDto.setIsEdited(message.getIsEdited());
-//
-//        if (message.getIsReply()){
-//            imageDto.setRepliedTo(toReplyMessageDto(message.getRepliedTo()));
-//        }
-//
-//        return imageDto;
-//    }
 }
