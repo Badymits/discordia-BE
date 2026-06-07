@@ -10,7 +10,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import com.example.discordia.model.UserModel;
-import com.example.discordia.repository.UserRepository;
+import com.example.discordia.jparepository.JpaUserRepository;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -19,9 +19,9 @@ import java.util.Collection;
 @Service
 public class CustomUserDetailsService implements UserDetailsService{
 
-    private final UserRepository userRepository;
+    private final JpaUserRepository userRepository;
 
-    public CustomUserDetailsService(UserRepository userRepository){
+    public CustomUserDetailsService(JpaUserRepository userRepository){
         super();
         this.userRepository = userRepository;
     }
