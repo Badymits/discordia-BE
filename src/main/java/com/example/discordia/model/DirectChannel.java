@@ -57,4 +57,7 @@ public class DirectChannel {
     @JsonManagedReference
     private List<DirectMessage> chatMessages;
 
+    @Column(name = "isChannelRead")
+    private Boolean isRead;
+
 }
