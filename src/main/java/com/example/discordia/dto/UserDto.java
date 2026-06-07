@@ -4,13 +4,14 @@ import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.io.Serializable;
 import java.util.List;
 import java.util.UUID;
 
 @Getter
 @Setter
 @Data
-public class UserDto {
+public class UserDto implements Serializable {
 
     private UUID userId;
     private String firstname;
