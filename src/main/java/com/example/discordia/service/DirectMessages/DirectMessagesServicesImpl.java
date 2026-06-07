@@ -2,17 +2,21 @@ package com.example.discordia.service.DirectMessages;
 
 
 import com.example.discordia.dto.DirectMessageDto;
+import com.example.discordia.dto.NotificationPayloadDto;
 import com.example.discordia.mappers.DirectMessageMapper;
 import com.example.discordia.model.DirectMessage;
 import com.example.discordia.model.UserModel;
-import com.example.discordia.repository.DirectMessagesRepository;
+import com.example.discordia.jparepository.JpaDirectMessagesRepository;
 
-import com.example.discordia.repository.ServerModelRepository;
-import com.example.discordia.repository.UserRepository;
+import com.example.discordia.jparepository.JpaServerModelRepository;
+import com.example.discordia.jparepository.JpaUserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,22 +28,26 @@ import java.util.*;
 @Slf4j
 public class DirectMessagesServicesImpl implements DirectMessagesService {
 
-    private final UserRepository userRepository;
-    private final ServerModelRepository serverModelRepository;
-    private final DirectMessagesRepository directMessagesRepository;
+    private final JpaUserRepository userRepository;
+    private final JpaServerModelRepository serverModelRepository;
+    private final JpaDirectMessagesRepository directMessagesRepository;
     private final DirectMessageMapper directMessageMapper;
 
     @Transactional
+    @CachePut(value = "directChannelMessages", key = "#messageDto.directChannelId")
     public DirectMessageDto createMessage(DirectMessageDto messageDto){
 
         log.info("Testing incoming data object: {}", messageDto);
-        log.info("testing is server invite bool: {}", messageDto.getIsServerInvite());
 
         DirectMessage message = directMessageMapper.dtoToDirectMessage(messageDto);
+
 
         UserModel existingUser =
                 userRepository.findByUserId(messageDto.getUserId())
                         .orElseThrow(() -> new EntityNotFoundException("User Not Found!"));
+
+
+        message.setUser(existingUser);
 
         if (messageDto.getIsReply()){
             DirectMessage parentMessage =
@@ -63,20 +71,18 @@ public class DirectMessagesServicesImpl implements DirectMessagesService {
             serverId.ifPresentOrElse(message::setServerId, ()-> message.setIsServerInvite(false));
         }
 
+//        int counter = message.getUnreadMessages() + 1;
+//        message.setUnreadMessages(counter);
+        message.setIsRead(false);
+
         log.info("testing mapped object: {}", message);
-
-        if (message != null){
-            message.setUser(existingUser);
-
-            directMessagesRepository.saveAndFlush(message);
-        } else {
-            throw new EntityNotFoundException("Cannot create message object");
-        }
+        directMessagesRepository.save(message);
 
         return directMessageMapper.directMessageToDto(message);
     }
 
     @Override
+    @Cacheable(value = "directChannelMessages", key = "#directChannelId")
     public List<DirectMessageDto> getDirectChannelMessages(UUID directChannelId){
 
         if (directChannelId == null){
@@ -89,6 +95,7 @@ public class DirectMessagesServicesImpl implements DirectMessagesService {
     }
 
     @Transactional
+    @CachePut(value = "directMessageCache", key = "#messageId")
     public DirectMessageDto updateDirectMessage(UUID messageId, String message){
 
         if (messageId == null){
@@ -110,6 +117,8 @@ public class DirectMessagesServicesImpl implements DirectMessagesService {
     }
 
     @Override
+    @Transactional
+    @CacheEvict(value = "messageCache", key = "#messageId")
     public UUID deleteDirectMessage(UUID messageId) {
 
         detachParentMessageFromReplies(messageId);
@@ -123,6 +132,22 @@ public class DirectMessagesServicesImpl implements DirectMessagesService {
         return directChannelID;
     }
 
+    public NotificationPayloadDto getNotificationDto(DirectMessageDto dto){
+
+        Integer totalCount = directMessagesRepository
+                .getTotalCountOfUnreadMessages(dto.getDirectChannelId());
+
+        if (totalCount == null){
+            throw new EntityNotFoundException("No Count");
+        }
+
+        NotificationPayloadDto notifDto = directMessageMapper.directMessageDtoToNotification(dto);
+        notifDto.setUnreadMessages(totalCount);
+
+        return notifDto;
+    }
+
+    @Transactional
     public void detachParentMessageFromReplies(UUID messageId){
 
         List<DirectMessage> replies = directMessagesRepository
