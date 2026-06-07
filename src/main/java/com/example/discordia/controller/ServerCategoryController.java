@@ -38,19 +38,21 @@ public class ServerCategoryController {
     @PostMapping("/update/{categoryId}")
     public ResponseEntity<String> updateCategory(
             @PathVariable UUID categoryId,
+            @RequestParam  UUID serverId,
             @RequestBody String categoryName
     ){
 
-        String result = categoryService.updateCategory(categoryId, categoryName);
+        String result = categoryService.updateCategory(categoryId, serverId, categoryName);
 
         return ResponseEntity.ok(result);
     }
 
     @DeleteMapping("{categoryId}")
     public ResponseEntity<Integer> deleteCategory(
-            @PathVariable UUID categoryId
+            @PathVariable UUID categoryId,
+            @RequestParam UUID serverId
     ){
-        return ResponseEntity.ok(categoryService.deleteCategory(categoryId));
+        return ResponseEntity.ok(categoryService.deleteCategory(categoryId, serverId));
     }
 
 
