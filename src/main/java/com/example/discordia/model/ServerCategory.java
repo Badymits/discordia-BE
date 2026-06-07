@@ -56,4 +56,7 @@ public class ServerCategory {
             orphanRemoval = true // when removing one channel (categoryChannels.remove(channel)) DB will follow
     )
     private List<ServerChannel> categoryChannels = new ArrayList<>();
+
+    @Column(name = "isRootFolder")
+    private Boolean isRootFolder;
 }
