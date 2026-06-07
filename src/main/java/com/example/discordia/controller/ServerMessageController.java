@@ -54,12 +54,10 @@ public class ServerMessageController {
     @PostMapping("/upload-image/{messageId}")
     public ResponseEntity<UploadImageDto> uploadMessageImage(
         @PathVariable UUID messageId,
-        @RequestPart("serverId") UUID serverId,
         @RequestPart("channelId") UUID channelId,
         @RequestPart(value = "image", required = false) MultipartFile image
         ){
 
-        log.info("received data: {}", serverId);
         UploadImageDto dto = imagesService.uploadMessageImage(messageId, channelId, "server", image);
         return ResponseEntity.ok(dto);
     }
@@ -67,14 +65,28 @@ public class ServerMessageController {
     @PatchMapping("/update-server-message/{messageId}")
     public ResponseEntity<ServerMessageDto> updateServerMessage(
             @PathVariable UUID messageId,
+            @RequestParam UUID channelId,
             @RequestBody String message
     ){
-        ServerMessageDto dto = serverMessagesService.updateServerMessage(messageId, message);
+        ServerMessageDto dto = serverMessagesService.updateServerMessage(messageId, channelId, message);
 
         String destination = "/topic/" + dto.getServerId() + "/" + dto.getChannelId();
         messagingTemplate.convertAndSend(destination, dto);
 
         return ResponseEntity.ok(dto);
+    }
+
+    @DeleteMapping("{serverId}/{channelId}/{messageId}")
+    public void deleteServerMessage(
+        @PathVariable UUID messageId,
+        @PathVariable UUID channelId,
+        @PathVariable UUID serverId
+    ){
+
+        serverMessagesService.deleteServerMessage(messageId, channelId);
+
+        String destination = "/topic/" + serverId + channelId;
+        messagingTemplate.convertAndSend(destination, messageId);
     }
 
 
