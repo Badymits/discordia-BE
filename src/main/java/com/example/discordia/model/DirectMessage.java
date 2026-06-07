@@ -9,6 +9,8 @@ import lombok.Setter;
 import org.hibernate.annotations.DynamicUpdate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import java.util.UUID;
+
 @Getter
 @Setter
 @Entity
@@ -33,5 +35,7 @@ public class DirectMessage extends Message{
     @Getter
     private DirectMessage repliedTo;
 
+    @Column(name = "RecipientUserId")
+    private UUID recipientId;
 
 }
