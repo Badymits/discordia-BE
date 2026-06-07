@@ -21,10 +21,11 @@ public class ServerChannelController {
 
     @PostMapping("/create-channel")
     public ResponseEntity<ServerChannelDto> createChannel (
-        @RequestBody ServerChannelDto channelDto
+        @RequestBody ServerChannelDto channelDto,
+        @RequestParam UUID serverId
     ){
         log.info("Channel dto received: {}", channelDto);
-        ServerChannelDto dto = channelService.createChannel(channelDto);
+        ServerChannelDto dto = channelService.createChannel(channelDto, serverId);
 
         return ResponseEntity.ok(dto);
     }
@@ -42,18 +43,20 @@ public class ServerChannelController {
     @PostMapping("/update/{channelId}")
     public ResponseEntity<String> updateChannel(
             @PathVariable UUID channelId,
+            @RequestParam UUID serverId,
             @RequestBody ServerChannelDto channelDto
     ){
         log.info("Received data: {}", channelDto);
-        channelService.updateChannel(channelId, channelDto);
+        channelService.updateChannel(channelId, serverId, channelDto);
         return ResponseEntity.ok("success");
     }
 
     @DeleteMapping("{channelId}")
     public void deleteChannel(
-            @PathVariable UUID channelId
+            @PathVariable UUID channelId,
+            @RequestParam UUID serverId
     ){
         log.info("Received confirmation to delete");
-        channelService.deleteChannel(channelId);
+        channelService.deleteChannel(channelId, serverId);
     }
 }
