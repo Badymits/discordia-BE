@@ -2,6 +2,7 @@ package com.example.discordia.controller;
 
 
 import com.example.discordia.dto.DirectMessageDto;
+import com.example.discordia.dto.NotificationPayloadDto;
 import com.example.discordia.dto.UploadImageDto;
 import com.example.discordia.service.DirectMessages.DirectMessagesService;
 import com.example.discordia.service.Images.ImagesService;
@@ -31,12 +32,24 @@ public class DirectMessageController {
 
     @MessageMapping("/sendDirectMessage")
     @Async
-    public void sendDirectMessage(@Payload DirectMessageDto messageDto){
-
+    public void sendDirectMessage(
+            @Payload DirectMessageDto messageDto
+            //@RequestBody Boolean isRecipientActive
+    ){
+        // sends message to the direct Channel room
         DirectMessageDto message = directMessagesService.createMessage(messageDto);
         String destination = "/topic/" + message.getDirectChannelId();
 
         messagingTemplate.convertAndSend(destination, message);
+
+        // responsible for sending notification to user when they send message to the recipient
+        // it will show up on top of the server list on the left
+        String notificationUrl = "/direct/" + message.getRecipientId();
+        NotificationPayloadDto notifDto = directMessagesService.getNotificationDto(message);
+
+        log.info("The notif DTO: {}", notifDto);
+        log.info("Notification url: {}", notificationUrl);
+        messagingTemplate.convertAndSend(notificationUrl, notifDto);
     }
 
     @GetMapping("/get-direct-messages/{directChannelId}")
@@ -63,11 +76,12 @@ public class DirectMessageController {
         return ResponseEntity.ok(updatedMessage);
     }
 
-    @DeleteMapping("{messageId}")
+    @DeleteMapping("{directChannelId}/{messageId}")
     public void deleteMessage(
-            @PathVariable UUID messageId
+            @PathVariable UUID messageId,
+            @PathVariable UUID directChannelId
     ){
-        UUID directChannelId = directMessagesService.deleteDirectMessage(messageId);
+        directMessagesService.deleteDirectMessage(messageId);
 
         String destination = "/topic/" + directChannelId;
         messagingTemplate.convertAndSend(destination, messageId);
