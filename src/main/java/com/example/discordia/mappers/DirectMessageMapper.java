@@ -1,6 +1,7 @@
 package com.example.discordia.mappers;
 
 import com.example.discordia.dto.DirectMessageDto;
+import com.example.discordia.dto.NotificationPayloadDto;
 import com.example.discordia.model.DirectMessage;
 
 import org.mapstruct.Mapper;
@@ -17,7 +18,10 @@ public interface DirectMessageMapper {
     @Mapping(source = "directChannelModel.directChannelId", target = "directChannelId")
     DirectMessageDto directMessageToDto(DirectMessage message);
 
-    @Mapping(source = "userId", target = "user")
+    @Mapping(source = "userId", target = "user", qualifiedByName = "uuidToUserModel")
     @Mapping(source = "directChannelId", target= "directChannelModel")
     DirectMessage dtoToDirectMessage(DirectMessageDto dto);
+
+
+    NotificationPayloadDto directMessageDtoToNotification(DirectMessageDto dto);
 }
